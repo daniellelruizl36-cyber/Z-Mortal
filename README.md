@@ -6,7 +6,7 @@
 
 | 版本 | 文件 | 说明 |
 |---|---|---|
-| R4 (v0.1) | [`mortal_r4_v0.1.pth`](https://github.com/OWNER/Z-Mortal/releases/tag/v0.1) | stage-2 冠军权重（推理用精简存档） |
+| R4 (v0.1) | [`mortal_r4_v0.1.pth`](https://github.com/daniellelruizl36-cyber/Z-Mortal/releases/tag/v0.1) | stage-2 冠军权重（推理用精简存档） |
 
 **模型卡**
 
