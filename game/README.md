@@ -40,3 +40,8 @@
 - **AGPL-3.0**：本目录整体（含 Riichi Advanced 修改版与桥接代码）。基于 [EpicOrange/riichi_advanced](https://github.com/EpicOrange/riichi_advanced)（AGPL-3.0）修改，对应源码即 `riichi-advanced/`
 - **AGPL-3.0**：AI 引擎 [Equim-chan/Mortal](https://github.com/Equim-chan/Mortal) 及 `libriichi` Rust 核心，源码在仓库根目录 `mortal/`、`libriichi/`
 - 模型权重随安装包发布，可自由用于推理、研究与再训练；再分发修改版须遵守 AGPL
+
+## 路线图（下一版本）
+
+- **更合理的出牌延时**：统一并随机化 AI 的切牌/副露/按钮响应延时。当前固定延时（吃碰等决策上响应过快）会向人类玩家泄露额外信息（例如从响应速度推断 AI 有无副露选项），下一版改为与决策内容无关的随机延时，使时机本身不携带信息
+- **对局后牌谱分析**：提供与 Mortal 原版（mortal.moe）一致的牌谱复盘功能——载入对局记录后逐手展示 AI 推荐切牌与实际切牌的差异，用于评估和改进自己的打法
