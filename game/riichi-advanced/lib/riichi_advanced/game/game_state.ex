@@ -1460,7 +1460,12 @@ defmodule RiichiAdvanced.GameState do
   def handle_cast({:fill_empty_seats_with_ai, disconnected?}, state) do
     tsumogiri_bot = Rules.get(state.rules_ref, "tsumogiri_bots", Debug.debug_tsumogiri_bots())
     state = if not state.log_seeking_mode do
-      ai_module = Application.get_env(:riichi_advanced, :ai_module, RiichiAdvanced.AIPlayer)
+      ai_module = if state.ruleset == "zhuyi_guangzhou" do
+        Application.get_env(:riichi_advanced, :ai_module, RiichiAdvanced.AIPlayer)
+      else
+        # R4Player only understands four-player mahjong; other rulesets use the native AI
+        RiichiAdvanced.AIPlayer
+      end
       state = for dir <- state.available_seats, Map.get(state, dir) == nil, disconnected? or not Map.has_key?(state.reserved_seats, dir), reduce: state do
         state ->
           {:ok, ai_pid} = DynamicSupervisor.start_child(state.ai_supervisor, %{

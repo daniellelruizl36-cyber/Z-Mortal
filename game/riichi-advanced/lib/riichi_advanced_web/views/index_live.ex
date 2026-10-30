@@ -11,7 +11,7 @@ defmodule RiichiAdvancedWeb.IndexLive do
     |> assign(:session_id, session["session_id"])
     |> assign(:nickname, Map.get(params, "nickname", ""))
     |> assign(:lang, Map.get(params, "lang", "en"))
-    |> assign(:ruleset, Map.get(params, "ruleset", "riichi"))
+    |> assign(:ruleset, Map.get(params, "ruleset", "zhuyi_guangzhou"))
     |> assign(:messages, [])
     |> assign(:messages_state, nil)
     |> assign(:show_room_code_buttons, false)
@@ -25,7 +25,7 @@ defmodule RiichiAdvancedWeb.IndexLive do
       GenServer.cast(messages_init.messages_state, {:add_message, %{text: "Welcome to Riichi Advanced!"}})
       socket
     else socket end
-    socket = assign(socket, :rulesets, Constants.available_rulesets())
+    socket = assign(socket, :rulesets, Enum.filter(Constants.available_rulesets(), fn {ruleset, _name, _desc} -> ruleset == "zhuyi_guangzhou" end))
     socket = assign(socket, :unimplemented_rulesets, Constants.unimplemented_rulesets())
     {:ok, socket}
   end

@@ -413,7 +413,7 @@ define_mod "yaku/chousangen", name: "Chousangen", desc: "Local yakuman. If you h
 define_mod "yaku/chousuushii", name: "Chousuushii", desc: "Local yakuman. If you have kans of all four winds, it's quadruple yakuman. Doesn't stack with daisuushi and suukantsu."
 define_mod_category "Shuugi"
 define_mod "lib/shuugi", order: -1, name: "Shuugi", desc: "Play with shuugi (poker chips). Each shuugi is worth some number of points each at the end. Win payments include shuugi along with points. On ron, you get shuugi from the discarder; on tsumo you get shuugi from everyone."
-config_mod "lib/shuugi", name: "worth", values: [200,500,1000,2000,5000,10000], default: 2000
+config_mod "lib/shuugi", name: "worth", values: [200,500,1000,2000,3000,5000,10000], default: 2000
 config_mod "lib/shuugi", name: "starting_shuugi", values: [0,10,50,100,250,500,1000], default: 100
 config_mod "lib/shuugi", name: "pao_pays_all", values: [false, true], default: true
 define_mod "shuugi/ippatsu", order: 1, name: "Ippatsu", deps: ["lib/shuugi", "lib/yaku/ippatsu"], desc: "Ippatsu is typically worth one shuugi."
