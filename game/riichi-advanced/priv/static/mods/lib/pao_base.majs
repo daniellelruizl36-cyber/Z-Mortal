@@ -1,0 +1,173 @@
+apply set, "score_calculation.win_with_pao_name", "Sekinin Barai"
+
+def pao_text do
+  if status_missing("shown_pao_text") do
+    set_status("shown_pao_text")
+    as others do
+      if is_responsible_for("prev_seat") do
+        big_text("Pao")
+      end
+    end
+  end
+end
+
+apply prepend, "buttons.ron.actions" do pao_text end
+apply prepend, "buttons.chankan.actions" do pao_text end
+apply prepend, "buttons.tsumo.actions" do pao_text end
+
+define_const pao_yaku, []
+
+def apply_rinshan_pao_scoring do
+  # same as normal ron scoring, just named "Pao dealer tsumo"
+  if seat_is("east", as: "winner") do
+    total *= 6 :: "Pao dealer tsumo"
+  else
+    total *= 4 :: "Pao nondealer tsumo"
+  end
+end
+
+on before_win do
+  set_counter_all("pao_han", "pao_han")
+  set_counter_all("pao_yakuman", "pao_yakuman")
+end
+
+define_scoring pao_tsumo do
+  total = 0
+  if points > 0 and status("rinshan_pao_eligible") do
+    # for non-yakuman rinshan pao tsumo specifically, score as normal ron
+    if points2 > 0 do points2 = points2 :: "★" else points = points :: "Han" end
+    calculate_base_score; if total > 0 do apply_rinshan_pao_scoring end
+    # pay all honba in full
+    if actual_honba > 0 do total += actual_honba * @honba_mult * @honba_value :: "Honba" end
+  else
+    if status("pao") do
+      orig_points2 = points2
+      orig_points = points
+      points2 -= pao_yakuman
+      points -= pao_han
+      # score remaining amount normally, if any
+      if points > 0 or points2 > 0 do
+        if points2 > 0 do points2 = points2 :: "★" else points = points :: "Han" end
+        calculate_base_score; if total > 0 do apply_tsumo_scoring end
+      end
+      # we pay the pao tsumo payment in full, as ron
+      nonpao_total = total
+      total = 0
+      cond do
+        orig_points2 > 0 -> points2 = pao_yakuman :: "★ (pao)"
+        orig_points > 0  -> points  = pao_han     :: "Han (pao)"
+      end
+      calculate_base_score; if total > 0 do apply_ron_scoring end
+      total += nonpao_total :: "Sum total"
+      # pay all honba in full
+      if actual_honba > 0 do total += actual_honba * @honba_mult * @honba_value :: "Honba" end
+    else
+      # if we aren't a pao player, we only pay for non-pao yaku as normal
+      # do not pay honba
+      # score remaining amount normally, if any
+      if points > 0 or points2 > 0 do
+        if points2 > 0 do points2 = points2 :: "★" else points = points :: "Han" end
+        calculate_base_score; if total > 0 do apply_tsumo_scoring end
+      end
+    end
+  end
+  finalize_score
+end
+
+define_scoring pao_ron do
+  total = 0
+  if status("pao") do
+    # we should have been made responsible for whatever pao yaku we're responsible for
+    # so score normally, then halve the payment and then round up
+    points2 = pao_yakuman
+    points = pao_han
+    if points2 > 0 do points2 = points2 :: "★" else points = points :: "Han" end
+    calculate_base_score; if total > 0 do apply_ron_scoring end
+    total /= 2 :: "Pao split"
+    if mod(total, 100) > 0 do
+      total = round_up(total, 100) :: "Round up"
+    end
+    # pay all honba in full
+    if actual_honba > 0 do total += actual_honba * @honba_mult * @honba_value :: "Honba" end
+  else
+    # we dealt in
+    # subtract the yaku we're not responsible for (someone has status pao and it's not us)
+    # and pay that in full. do not pay honba
+    orig_points2 = points2
+    orig_points = points
+    points2 -= pao_yakuman
+    points -= pao_han
+    # score remaining amount normally, if any
+    if points > 0 or points2 > 0 do
+      if points2 > 0 do points2 = points2 :: "★" else points = points :: "Han" end
+      calculate_base_score; if total > 0 do apply_ron_scoring end
+    end
+    # now pay half of the pao yaku payment
+    # do not pay honba
+    nonpao_total = total
+    total = 0
+    cond do
+      orig_points2 > 0 -> points2 = pao_yakuman :: "★ (pao)"
+      orig_points > 0  -> points  = pao_han     :: "Han (pao)"
+    end
+    calculate_base_score; if total > 0 do apply_ron_scoring end
+    total /= 2 :: "Pao split"
+    if mod(total, 100) > 0 do
+      total = round_up(total, 100) :: "Round up"
+    end
+    total += nonpao_total :: "Sum total"
+  end
+  finalize_score
+end
+replace all, "buttons.tsumo.actions", ["win_by_draw", "tsumo"] do
+  if anyone_status("pao") do
+    win_by_draw("pao_tsumo")
+  else
+    win_by_draw("tsumo")
+  end
+end
+replace all, "buttons.ron.actions", ["win_by_discard", "ron"] do
+  if anyone_status("pao") do
+    win_by_discard("pao_ron")
+  else
+    win_by_discard("ron")
+  end
+end
+replace all, "buttons.chankan.actions", ["win_by_call", "ron"] do
+  if anyone_status("pao") do
+    win_by_call("pao_ron")
+  else
+    win_by_call("ron")
+  end
+end
+
+on before_win do
+  if anyone_status("pao") do
+    as winner do
+      set_counter_all("pao_yakuman", "pao_yakuman")
+      set_counter_all("pao_han", "pao_han")
+    end
+  end
+end
+
+if defined("honba") do
+  on before_win do
+    if anyone_status("pao") do
+      # zero out the honba counter, we will apply honba manually
+      set_counter_all("actual_honba", "honba")
+      subtract_honba("honba")
+    end
+  end
+end
+
+def finalize_score, prepend: true do
+  if actual_honba > 0 and anyone_status("pao") do
+    # the pao player(s) pays all honba, regardless of ron or tsumo
+    if status("pao") do
+      total += honba * @honba_mult * @honba_value :: "Honba (pao)"
+    end
+  else
+    # defer to original honba logic
+    add_honba("actual_honba")
+  end
+end

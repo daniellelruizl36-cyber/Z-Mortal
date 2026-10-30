@@ -1,0 +1,14 @@
+on after_initialization do
+  add_rule("1 Han", "Tsubame Gaeshi", "Win off a riichi discard.")
+end
+
+define_yaku yaku, "Tsubame Gaeshi", [1, "Han"], won_by_discard and discarder_status("just_reached")
+
+# tsubame gaeshi awards the riichi bet
+on before_win do
+  if won_by_discard and discarder_status("just_reached") do
+    as last_discarder do
+      place_riichi_stick
+    end
+  end
+end

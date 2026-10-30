@@ -1,0 +1,22 @@
+# All Star: winning hand contains all three aka dora (hand + calls + winning tile counts),
+# worth 5 shuugi, replacing the individual aka shuugi.
+# Closed-hand-only restriction for regular aka shuugi is preserved via @closed_hand.
+
+on after_initialization do
+  add_rule("Shuugi", "All Star", "(All Star) Having all three aka dora in your winning hand (called tiles included) is worth 5 shuugi, replacing the individual aka shuugi.")
+end
+
+# regular aka shuugi no longer applies when All Star is achieved (3 aka -> 5 total, not 3+5)
+replace_yaku shuugi, "Aka", ["aka_payment", "⛀"], aka_payment > 0 and aka < 3 and @closed_hand
+
+define_yaku shuugi, "All Star", [5, "⛀"], aka >= 3
+
+def announce_shuugi_payment, append: true do
+  if aka >= 3 do
+    if won_by_draw do
+      push_system_message("Everyone pays 5 chips for All Star (shuugi)")
+    else
+      push_system_message("Discarder pays 5 chips for All Star (shuugi)")
+    end
+  end
+end

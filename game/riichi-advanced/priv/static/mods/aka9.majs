@@ -1,0 +1,46 @@
+on after_initialization do
+  add_rule("Tiles", "Aka", "%{man}x %{9m}, %{pin}x %{9p}, and %{sou}x %{9s} are replaced with red \"aka dora\" nines %{akadora_nines} that are worth one extra han each.", %{man: !man, pin: !pin, sou: !sou, "9m": ["9m"], "9p": ["9p"], "9s": ["9s"], akadora_nines: ["09m", "09p", "09s"]}, -99)
+end
+
+unless defined("aka") do
+  define "aka"
+  on after_initialization do
+    add_rule("Shuugi", "Aka", "(Aka) If your hand is closed, each aka dora is worth 1 shuugi chip.")
+  end
+end
+
+replace !man, "wall", "9m", "09m"
+replace !pin, "wall", "9p", "09p"
+replace !sou, "wall", "9s", "09s"
+replace !man, "wall", "9t", "09t" # just reuse !man, keep it simple
+
+on after_start do
+  set_tile_alias_all(["09m"], ["9m"])
+  set_tile_alias_all(["09p"], ["9p"])
+  set_tile_alias_all(["09s"], ["9s"])
+  set_tile_alias_all(["09t"], ["9t"])
+  tag_tiles("dora", ["09m", "09p", "09s", "09t"])
+end
+
+# count aka
+on before_win do
+  # use add_counter to be compatible with other aka mods
+  add_counter("aka", "count_matches", ["hand", "calls", "winning_tile"], ~m"nojoker, (09m 09p 09s 09t):1")
+end
+
+# remove extra_yaku "Aka" if it already exists beforehand, so there should only ever be one copy of "Aka"
+remove_yaku extra_yaku, "Aka"
+define_yaku extra_yaku, "Aka", "aka", counter_at_least("aka", 1)
+
+apply set_merge, "dora_indicators", %{
+  "09m": ["1m"],
+  "09p": ["1p"],
+  "09s": ["1s"],
+  "09t": ["1t"]
+}
+
+# add tile indices for stars, tens, and so on
+apply set_merge, "custom_style.tile_indices", %{
+    "09t": "9"
+}
+

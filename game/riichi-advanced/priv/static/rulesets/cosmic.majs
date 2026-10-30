@@ -1,0 +1,35 @@
+define_base_ruleset space
+set display_name, "Cosmic Riichi"
+set tutorial_link, "https://docs.google.com/document/d/1F-NhQ5fdi5CnAyEqwNE_qWR0Og99NtCo2NGkvBc5EwU"
+define_global han, "Han"
+require "cosmic"
+require_after "yakuman_13_han"
+require_after "riichi_fix_rules_tabs"
+apply set_append, "default_mods", [
+  "kontsu",
+  "yaku/kontsu_yaku",
+  "yaku/chanfuun",
+  "yaku/fuunburi",
+  "yaku/uumensai_cosmic",
+  "cosmic_calls",
+  # add back chiitoitsu, but it's open chiitoi worth 1 han
+  # +1 bonus for closed is found in cosmic mod
+  %{name: "lib/yaku/chiitoitsu", config: %{kansai: false, name: "Chiitoitsu", value: 1}},
+  "yaku/tsubame_gaeshi",
+  "yaku/kanburi",
+  %{name: "lib/yaku/isshoku_sanjun", config: %{san_value: 2, yon_list: "yakuman", yon_value: 1, yon_han: "★", san_closed_bonus: 1}},
+]
+
+on after_initialization do
+  add_rule("Rules", "Win Condition", "- (Cosmic Riichi) Seven Pairs is again a possible winning hand.", -100)
+end
+
+remove_mod "lib/space"
+define_mod_category "Cosmic", prepend: true
+define_mod kontsu, name: "Kontsu", category: "Cosmic", order: 5, desc: "Add mixed triplets, or kontsu. If you have the same number in three suits, that counts as one of your sets towards four sets and a pair. For example, 1m1s1p is a kontsu. Also considered kontsu: 3 different winds, or one of each dragon."
+define_mod cosmic_calls, name: "Cosmic Calls", order: 4, category: "Cosmic", deps: ["kontsu"], order: 2, desc: "Add the following calls: Ton (calls a pair), Chon (calls kontsu), and Fuun (calls a set of 4 different winds). The precedence is Ton < Chii < Chon < Fuun < Pon < Kan."
+define_mod "yaku/kontsu_yaku", name: "Kontsu Yaku", order: 4, category: "Cosmic", deps: ["kontsu"], desc: "A wind kontsu counts as 0.5 han if it contains both the round wind and seat wind. A dragon kontsu is always 0.5 han, and is called mini-sangen. Having two of the same kontsu in a closed hand is 1 han (ryandoukon), having three is 2 han open 3 han closed (sandoukon), and having four is yakuman (yondoukon)."
+define_mod "yaku/chanfuun", name: "Chanfuun", order: 4, category: "Cosmic", deps: ["kontsu", "cosmic_calls"], desc: "1 han for winning off the tile that upgrades a wind kontsu to a fuun."
+define_mod "yaku/fuunburi", name: "Fuunburi", order: 4, category: "Cosmic", deps: ["kontsu", "cosmic_calls"], desc: "1 han if you win off the tile discarded by a player who just called fuun."
+define_mod "yaku/uumensai_cosmic", name: "Uumensai (cosmic)", order: 4, category: "Cosmic", deps: ["kontsu"], desc: "2 han if each of your four sets is of a different kind: sequence, triplet, mixed triplet (kontsu), kan, mixed quad (fuun)."
+define_mod "yaku/sanankon", name: "Sanankon", order: 4, category: "Cosmic", deps: ["kontsu"], desc: "Local yaku. 1 han for having three concealed kontsu. 3 han for having four, and 6 han for having four waiting on your pair."

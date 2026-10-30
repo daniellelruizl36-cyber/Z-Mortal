@@ -1,0 +1,19 @@
+on after_initialization do
+  delete_rule("Rules", "No Abortive Draws")
+  add_rule("Rules", !name, "If all four players discard the same wind tile as their first discard, the game ends in an abortive draw.")
+end
+
+def set_suufonrenda do
+  if status("discards_empty") do
+    set_status("$status")
+    if status("$status", as: "everyone") do
+      pause(1000)
+      abortive_draw(!name)
+    end
+  end
+end
+
+define_play_effect "1z" do set_suufonrenda(%{status: "suufonrenda_1z"}) end
+define_play_effect "2z" do set_suufonrenda(%{status: "suufonrenda_2z"}) end
+define_play_effect "3z" do set_suufonrenda(%{status: "suufonrenda_3z"}) end
+define_play_effect "4z" do set_suufonrenda(%{status: "suufonrenda_4z"}) end

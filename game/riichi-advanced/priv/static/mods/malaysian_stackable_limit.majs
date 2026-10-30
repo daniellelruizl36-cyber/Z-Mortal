@@ -1,0 +1,21 @@
+on after_initialization do
+  update_rule("Limit", "Limit", "(Stackable Limit) You may stack multiple instances of 10 Fan by achieving more than one of these. This is the only way to exceed the 10 Fan limit.")
+end
+
+replace all, "limit", [10, "Fan"], [1, "Limit"]
+
+apply delete_key, "functions", "calculate_base_score" # remove the old calculate_base_score
+
+def calculate_base_score do
+  if points2 > 0 do
+    total = points2 :: "Limit"
+    total *= 10 :: "Fan"
+    total *= 20 :: "Score"
+  else
+    total = points :: "Fan"
+    total *= 20 :: "Score"
+    if total > 200 do
+      total = 200 :: "Cap at 200"
+    end
+  end
+end

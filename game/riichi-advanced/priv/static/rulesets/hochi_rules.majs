@@ -1,0 +1,79 @@
+# TODO:
+# - ryuukyoku should divide riichi sticks among players; riichi sticks are never carried over to the next round
+# - not sure how different mangans combine
+
+define_base_ruleset riichi
+set display_name, "Hochi Rules (c. 1952)"
+set tutorial_link, "https://riichi.wiki/Hochi_rules"
+require "ryuukyokurenchan"
+require "pao_standard"
+require "pao_suukantsu"
+require "pao_tsuuiisou"
+require "pao_chinroutou"
+require_after "partial_furiten"
+require_after "hochi_scoring"
+
+set display_honba, true
+set always_east_round, true
+set max_rounds, 8
+set initial_score, 5000
+
+# open pinfu is 20 fu, pinfu tsumo is 22 fu
+define_const closed_tsumo_20_fu, false
+define_const open_30_fu, false
+define_const chiitoitsu_fu, 30
+
+# yaku differences are:
+# - no ippatsu, iipeikou, ryanpeikou, ryuuiisou
+# - pinfu can be open
+# - closed honitsu is still 2 han
+# - add iishoku sanjun worth 2/3 han
+# - add iishoku yonjun worth shoumangan
+# - add daichiishin worth shoumangan
+# - chinitsu, honroutou, renhou are now shoumangan
+# - no double yakuman variants of kokushi, chuurenpoutou, suuankou
+# - all yakuman are daimangan
+# - except chuurenpoutou which is baimangan
+# - pao applies to daisangen, daisuushii, suukantsu, tsuuiisou, and chinroutou
+
+apply subtract, "default_mods", [
+  "lib/yaku/ippatsu",
+  %{name: "lib/yaku/iipeikou", config: %{ii_value: 1, ryan_value: 3}},
+  %{name: "lib/yaku/ryuuiisou", config: %{han: "★"}},
+  %{name: "lib/yaku/honitsu", config: %{chin_value: 5, closed_bonus: 1, hon_value: 2} },
+  %{name: "lib/yaku/honroutou", config: %{chin_han: "★", chin_list: "yakuman", chin_value: 1, hon_value: 2 } },
+  %{name: "honba", config: %{value: 100}},
+  %{name: "dora", config: %{start_indicators: 1}},
+  "ura", "kandora",
+  %{name: "aka", config: %{man: 1, pin: 1, sou: 1}},
+  %{name: "nagashi", config: %{counts_as: "draw", is: "Mangan"}},
+  %{name: "uma", config: %{_1st: 10, _2nd: 5, _3rd: -5, _4th: -10}},
+  %{name: "lib/tobi", config: %{below: 0}},
+  "lib/kuikae_nashi",
+  %{name: "lib/min_han", config: %{han: "Han", min: 1}},
+  %{name: "suufon_renda", config: %{name: "Suufon Renda"}},
+  "suucha_riichi",
+  "lib/pao_standard", # already preapplied
+  "lib/suukaikan",
+  "tenpairenchan",
+  %{name: "kyuushu_kyuuhai", config: %{name: "Kyuushu Kyuuhai"}},
+  "kokushi_ankan_chankan",
+  %{name: "lib/yaku/riichi_renhou", config: %{is: "Yakuman"}},
+]
+
+apply append, "default_mods", [
+  %{name: "lib/yaku/honitsu", config: %{hon_value: 2, chin_value: 1, chin_han: "★", closed_bonus: 1}},
+  %{name: "lib/yaku/honroutou", config: %{hon_value: 1, hon_han: "★", chin_value: 1.5, chin_han: "★"}},
+  %{name: "lib/yaku/isshoku_sanjun", config: %{san_value: 2, yon_list: "yakuman", yon_value: 1, yon_han: "★", san_closed_bonus: 1}},
+  "no_riichi_ankan",
+  %{name: "lib/yaku/riichi_renhou", config: %{is: "Shoumangan"}},
+]
+
+on after_initialization do
+  add_rule("Rules", "Tontonsen", "The game consists of two east rounds.")
+  delete_rule("Rules", "Multiple Ron")
+  add_rule("Rules", "Head Bump", "If there are multiple winners, then the earliest winner in turn order gets the full payment for the hand, and the other winners get half each. As for riichi sticks, each winner first takes back their own riichi stick (if any) and any leftover riichi sticks are evenly divided among winners.")
+  add_rule("Rules", "Fu", "(Hochi Rules) Fu is not rounded. However, pinfu tsumo is 20 fu.")
+  add_rule("Rules", "Scoring", "Scores are rounded to the nearest 10, maxing out at 1000 points (considered shoumangan, 4000/6000). Hands that are yakuman in riichi are daimangan (6000/9000), with the exception of chuurenpoutou, which is baimangan (8000/12000)")
+  add_rule("Rules", "Minimum Han", "After 1 or more repeats, winning requires a minimum of 1 han.")
+end

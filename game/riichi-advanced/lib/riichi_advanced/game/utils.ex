@@ -1,0 +1,705 @@
+defmodule RiichiAdvanced.Utils do
+  alias RiichiAdvanced.Constants, as: Constants
+  alias RiichiAdvanced.GameState.Rules, as: Rules
+  alias RiichiAdvanced.GameState.TileBehavior, as: TileBehavior
+  alias RiichiAdvanced.Riichi, as: Riichi
+  require Logger
+
+  def to_tile(tile_spec) do
+    case tile_spec do
+      [tile_spec | attrs] -> {Constants.to_tile()[tile_spec], attrs}
+      %{"tile" => tile_spec, "attrs" => attrs} -> {Constants.to_tile()[tile_spec], attrs}
+      {tile_spec, attrs} -> {Constants.to_tile()[tile_spec], attrs}
+      _ -> Constants.to_tile()[tile_spec]
+    end
+  end
+
+  def is_tile(tile_spec) do
+    case tile_spec do
+      [tile_spec | _attrs] -> Map.has_key?(Constants.to_tile(), tile_spec)
+      %{"tile" => tile_spec, "attrs" => _attrs} -> Map.has_key?(Constants.to_tile(), tile_spec)
+      {tile_spec, attrs} -> Map.has_key?(Constants.to_tile(), tile_spec) and is_list(attrs)
+      _ -> Map.has_key?(Constants.to_tile(), tile_spec)
+    end
+  end
+
+  def tile_to_string(tile) do
+    if tile != nil do
+      tile |> strip_attrs() |> Atom.to_string()
+    else nil end
+  end
+
+  def hand_to_string(hand) do
+    hand
+    |> strip_attrs()
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.group_by(fn <<_num, suit>> -> <<suit>> end, fn <<num, _>> -> <<num>> end)
+    |> Enum.map(fn {suit, nums} -> Enum.join(nums) <> suit end)
+    |> Enum.join()
+  end
+
+  def construct_tile(tile, []), do: tile
+  def construct_tile(tile, attrs), do: {tile, attrs}
+
+  def to_attr_tile({tile, attrs}), do: {tile, attrs}
+  def to_attr_tile(tile), do: {tile, []}
+
+  def get_attrs({_tile, attrs}), do: attrs
+  def get_attrs(_tile), do: []
+
+  def add_attr(tile, []), do: tile
+  def add_attr({tile, existing_attrs}, attrs) when is_list(attrs), do: {tile, Enum.uniq(attrs ++ existing_attrs)}
+  def add_attr({tile, existing_attrs}, attrs), do: {tile, Enum.uniq([attrs | existing_attrs])}
+  def add_attr(tiles, attrs) when is_list(tiles), do: Enum.map(tiles, &add_attr(&1, attrs))
+  def add_attr(tiles, attrs) when is_struct(tiles, MapSet), do: MapSet.new(tiles, &add_attr(&1, attrs))
+  def add_attr(tile, attrs), do: {tile, attrs}
+
+  def remove_attr(tile, []), do: tile
+  def remove_attr({tile, existing_attrs}, attrs) when is_list(attrs), do: construct_tile(tile, Enum.uniq(existing_attrs -- attrs))
+  def remove_attr({tile, existing_attrs}, attrs), do: construct_tile(tile, Enum.uniq(existing_attrs -- [attrs]))
+  def remove_attr(tiles, attrs) when is_list(tiles), do: Enum.map(tiles, &remove_attr(&1, attrs))
+  def remove_attr(tiles, attrs) when is_struct(tiles, MapSet), do: MapSet.new(tiles, &remove_attr(&1, attrs))
+  def remove_attr(tile, _attrs), do: tile
+
+  def has_attr?({_tile, existing_attrs}, attrs) do
+    attrs = List.wrap(attrs)
+    {invisible, salient} = Enum.split_with(existing_attrs, &String.starts_with?(&1, "_"))
+    salient_hashes = MapSet.new(salient, &:erlang.phash2(&1))
+    invisible_hashes = MapSet.new(invisible, &:erlang.phash2(&1))
+    Enum.all?(attrs, &:erlang.phash2(&1) in salient_hashes or :erlang.phash2("_" <> &1) in invisible_hashes)
+  end
+  def has_attr?(tiles, attrs) when is_list(tiles), do: Enum.any?(tiles, &has_attr?(&1, attrs))
+  def has_attr?(tiles, attrs) when is_struct(tiles, MapSet), do: MapSet.new(tiles, &has_attr?(&1, attrs))
+  def has_attr?(_, []), do: true
+  def has_attr?(_, _), do: false
+
+  def strip_attrs(tile, mode \\ nil)
+  def strip_attrs({tile, _attrs}, nil), do: tile
+  def strip_attrs({tile, attrs}, :salient), do: construct_tile(tile, Enum.filter(attrs, &String.starts_with?(&1, "_")))
+  def strip_attrs({tile, attrs}, :invisible), do: construct_tile(tile, Enum.reject(attrs, &String.starts_with?(&1, "_")))
+  def strip_attrs(tiles, mode) when is_list(tiles), do: Enum.map(tiles, &strip_attrs(&1, mode))
+  def strip_attrs(tiles, mode) when is_struct(tiles, MapSet), do: MapSet.new(tiles, &strip_attrs(&1, mode))
+  def strip_attrs(tile, _mode), do: tile
+
+  def to_salient_attrs({tile, attrs}), do: {tile, Enum.map(attrs, &String.replace_leading(&1, "_", "")) |> Enum.sort()}
+  def to_salient_attrs(tiles) when is_list(tiles), do: Enum.map(tiles, &to_salient_attrs(&1))
+  def to_salient_attrs(tiles) when is_struct(tiles, MapSet), do: MapSet.new(tiles, &to_salient_attrs(&1))
+  def to_salient_attrs(tile), do: tile
+
+  def tile_color(tile), do: Map.get(Constants.tile_color(), tile, "white")
+
+  def is_space?(tile), do: has_matching_tile?([tile], [:"2x", :"3x", :"4x", :"5x", :"6x", :"7x", :"8x"]) or has_attr?(tile, ["hidden"])
+  def remove_spaces(tiles), do: Enum.reject(tiles, &is_space?/1)
+
+  # print tile, print hand
+  # print tile, print hand
+  def pt(tile) do
+    {tile, attrs} = to_attr_tile(tile)
+    tile = if "concealed" in attrs do :"1x" else tile end
+    %{bold: true, color: tile_color(tile), text: "#{tile}"}
+  end
+  def ph(tiles), do: Enum.map(tiles, &pt/1)
+
+  def print_yaku_value(value) when is_list(value), do: Enum.chunk_every(value, 2) |> Enum.map_join(", ", fn [num, unit] -> "#{num} #{unit}" end)
+  def print_yaku_value(value), do: "#{value}"
+  def print_yaku(yaku), do: Enum.flat_map(yaku, fn {name, value} -> [%{text: name}, %{bold: true, text: "(#{print_yaku_value(value)})"}] end)
+
+  def sort_tiles(tiles, joker_assignment \\ %{}) do
+    tiles
+    |> Enum.with_index()
+    |> Enum.sort_by(fn {tile, ix} -> Constants.sort_value(Map.get(joker_assignment, ix, tile)) end)
+    |> Enum.map(fn {tile, _ix} -> tile end)
+  end
+
+  # find all jokers that map to the same tile(s) as the given one
+  # together with the tile(s) they are connected by
+  def apply_tile_aliases(tiles, tile_behavior) when is_list(tiles) or is_struct(tiles, MapSet) do
+    Enum.map(tiles, &apply_tile_aliases(&1, tile_behavior))
+    |> Enum.reduce(MapSet.new(), &MapSet.union/2)
+  end
+  def apply_tile_aliases(tile, tile_behavior) do
+    Map.get(tile_behavior.mappings, tile, MapSet.new())
+    |> MapSet.put(tile)
+    # every joker is connected to any-tile jokers
+    # |> MapSet.union(MapSet.new(Map.get(tile_behavior.mappings, :any, %{}) |> Map.values() |> Enum.concat()))
+  end
+
+  # tile1 must have at least the attributes of tile2 (or any of its aliases)
+  def same_tile(tile1, tile2) do
+    t1 = strip_attrs(tile1)
+    {t2, attrs2} = to_attr_tile(tile2)
+    same_id = t1 == t2 or t1 == :any or t2 == :any
+           or (t2 == :faceup and t1 not in [:"1x", :"2x", :"3x", :"4x"])
+    # if same id, check if (non-invisible) attrs match
+    same_id and has_attr?(tile1, Enum.reject(attrs2, &String.starts_with?(&1, "_")))
+  end
+  def same_tile(tile1, tile2, tile_behavior) when tile_behavior.aliases == %{}, do: same_tile(tile1, tile2)
+  def same_tile(tile1, tile2, tile_behavior) do
+    t1 = strip_attrs(tile1)
+    {t2, attrs2} = to_attr_tile(tile2)
+    l1 = strip_attrs(apply_tile_aliases(tile1, tile_behavior))
+    l2 = strip_attrs(apply_tile_aliases(tile2, tile_behavior))
+    same_id = t1 in l2 or t2 in l1 or :any in l1 or :any in l2
+      or (:faceup in l2 and Enum.any?(l1, fn tile -> tile not in [:"1x", :"2x", :"3x", :"4x"] end))
+    # if same id, check if (non-invisible) attrs match
+    same_id and has_attr?(tile1, Enum.reject(attrs2, &String.starts_with?(&1, "_")))
+  end
+
+  def to_manzu(tile) do
+    case tile do
+      :"0p" -> :"0m"; :"1p" -> :"1m"; :"2p" -> :"2m"; :"3p" -> :"3m"; :"4p" -> :"4m"; :"5p" -> :"5m"; :"6p" -> :"6m"; :"7p" -> :"7m"; :"8p" -> :"8m"; :"9p" -> :"9m"; :"10p" -> :"10m"
+      :"0s" -> :"0m"; :"1s" -> :"1m"; :"2s" -> :"2m"; :"3s" -> :"3m"; :"4s" -> :"4m"; :"5s" -> :"5m"; :"6s" -> :"6m"; :"7s" -> :"7m"; :"8s" -> :"8m"; :"9s" -> :"9m"; :"10s" -> :"10m"
+      :"7j" -> :"9j"; :"8j" -> :"9j"; :"17j" -> :"19j"; :"18j" -> :"19j";
+      _ -> tile
+    end
+  end
+
+  def same_number(tile1, tile2, tile_behavior \\ %TileBehavior{}) do
+    {t1, attrs1} = to_attr_tile(tile1)
+    {t2, attrs2} = to_attr_tile(tile2)
+    same_tile({to_manzu(t1), attrs1}, {to_manzu(t2), attrs2}, tile_behavior)
+  end
+
+  def has_matching_tile?(hand, tiles, tile_behavior \\ %TileBehavior{}) do
+    Enum.any?(hand, fn hand_tile ->
+      Enum.any?(tiles, &same_tile(hand_tile, &1, tile_behavior))
+    end)
+  end
+
+  def count_tiles(hand, tiles, tile_behavior \\ %TileBehavior{}) do
+    for hand_tile <- hand do
+      if Enum.any?(tiles, &same_tile(hand_tile, &1, tile_behavior)) do 1 else 0 end
+    end |> Enum.sum()
+  end
+
+  # TODO what about 3-player
+  def next_turn(seat, iterations \\ 1) do
+    iterations = rem(iterations, 4)
+    next = case seat do
+      :east     -> :south
+      :south    -> :west
+      :west     -> :north
+      :north    -> :east
+      :self     -> :shimocha
+      :shimocha -> :toimen
+      :toimen   -> :kamicha
+      :kamicha  -> :self
+    end
+    if iterations <= 0 do seat else next_turn(next, iterations - 1) end
+  end
+  def prev_turn(seat, iterations \\ 1) do
+    iterations = rem(iterations, 4)
+    prev = case seat do
+      :east     -> :north
+      :south    -> :east
+      :west     -> :south
+      :north    -> :west
+      :self     -> :kamicha
+      :shimocha -> :self
+      :toimen   -> :shimocha
+      :kamicha  -> :toimen
+    end
+    if iterations <= 0 do seat else prev_turn(prev, iterations - 1) end
+  end
+
+  def get_prev_player_turn(turn, available_seats) do
+    for _ <- 1..4, reduce: prev_turn(turn) do
+      new_turn -> if new_turn in available_seats do new_turn else prev_turn(new_turn) end
+    end
+  end
+  
+  def get_next_player_turn(turn, available_seats) do
+    for _ <- 1..4, reduce: next_turn(turn) do
+      new_turn -> if new_turn in available_seats do new_turn else next_turn(new_turn) end
+    end
+  end
+  
+  @spec get_seat(
+          :east | :kamicha | :north | :self | :shimocha | :south | :toimen | :west,
+          :kamicha | :self | :shimocha | :toimen
+        ) :: :east | :kamicha | :north | :self | :shimocha | :south | :toimen | :west
+  def get_seat(seat, direction) do
+    case direction do
+      :shimocha -> next_turn(seat)
+      :toimen   -> next_turn(seat, 2)
+      :kamicha  -> next_turn(seat, 3)
+      :self     -> next_turn(seat, 4)
+    end
+  end
+
+  def get_relative_seat(seat, seat2) do
+    cond do
+      seat2 == next_turn(seat)    -> :shimocha
+      seat2 == next_turn(seat, 2) -> :toimen
+      seat2 == next_turn(seat, 3) -> :kamicha
+      seat2 == next_turn(seat, 4) -> :self
+    end
+  rescue
+    err ->
+      IO.puts("Invalid seats passed to get_relative_seat: #{seat} and #{seat2}")
+      raise err
+  end
+
+  def atamahane_order(_curr_seat, nil), do: 5
+  def atamahane_order(curr_seat, seat) do
+    case get_relative_seat(curr_seat, seat) do
+      :self -> 0
+      :shimocha -> 1
+      :toimen -> 2
+      :kamicha -> 3
+      _ -> 4
+    end
+  end
+
+  def get_wind_name(wind) do
+    case wind do
+      :east  -> "東"
+      :south -> "南"
+      :west  -> "西"
+      :north -> "北"
+    end
+  end
+
+  def to_registry_name(name, id) do
+    name <> "-" <> id
+  end
+  def to_registry_name(name, ruleset, room_code) do
+    name <> "-" <> ruleset <> "-" <> room_code
+  end
+  def via_registry(name, ruleset) do
+    {:via, Registry, {:game_registry, to_registry_name(name, ruleset)}}
+  end
+  def via_registry(name, ruleset, room_code) do
+    {:via, Registry, {:game_registry, to_registry_name(name, ruleset, room_code)}}
+  end
+  def registry_lookup(name, ruleset) do
+    Registry.lookup(:game_registry, to_registry_name(name, ruleset))
+  end
+  def registry_lookup(name, ruleset, room_code) do
+    Registry.lookup(:game_registry, to_registry_name(name, ruleset, room_code))
+  end
+
+  def try_integer(value) do
+    if abs(value - round(value)) < 0.000001 do round(value) else value end
+  end
+
+  def half_score_rounded_up(value) do
+    # half rounded up to the nearest 100
+    nominal = Integer.floor_div(value, 100)
+    # floor_div rounds towards -infinity, so this is effectively ceil(nominal/2) * 100
+    -Integer.floor_div(-nominal, 2) * 100
+  end
+
+  @valid_tile_colors [
+    "red", "blue", "cyan", "gold",
+    "orange", "yellow", "green", "lightblue", "purple",
+    "gray", "grey", "lightgray", "lightgrey",
+    "brown", "pink", "black", "white", "rainbow"
+  ]
+
+  def get_tile_class(tile, i \\ -1, assigns \\ %{}, extra_classes \\ [], animate_played \\ false) do
+    id = strip_attrs(tile)
+    transparent = has_attr?(tile, ["transparent"])
+    inactive = has_attr?(tile, ["inactive"])
+    hidden = has_attr?(tile, ["hidden"]) and not Map.get(assigns, :reveal_hidden_tiles, false)
+    dora = has_attr?(tile, ["dora"])
+    highlight = has_attr?(tile, ["highlight"])
+    last_sideways = has_attr?(tile, ["last_sideways"])
+    reversed = transparent and id == :"1x"
+    id = if reversed do strip_attrs(tile) else id end
+    facedown = has_attr?(tile, ["facedown"]) and not (Map.get(assigns, :your_hand?, true) and Map.get(assigns, :hover_index, nil) == i)
+    concealed = has_attr?(tile, ["concealed"])
+    not_visible = (facedown or concealed) and not Map.get(assigns, :your_hand?, true) # i.e. send 1x to other players
+    anim = has_attr?(tile, ["anim"])
+    played = animate_played and Map.get(assigns, :your_hand?, true) and i != nil and Map.get(assigns, :preplayed_index, nil) == i
+    sideways = i != nil and i == Map.get(assigns, :riichi_index, nil) or has_attr?(tile, ["sideways"])
+    just_played = Map.get(assigns, :just_discarded?, false) and Map.has_key?(assigns, :pond) and i != nil and i == length(assigns.pond) - 1
+    riichi = Map.has_key?(assigns, :riichi_index) and i != nil and i == assigns.riichi_index
+    selected = Map.has_key?(assigns, :selected_index) and i != nil and i == assigns.selected_index
+    number_class = case Riichi.to_num(tile) do
+      1 -> ["one"]
+      2 -> ["two"]
+      3 -> ["three"]
+      4 -> ["four"]
+      5 -> ["five"]
+      6 -> ["six"]
+      7 -> ["seven"]
+      8 -> ["eight"]
+      9 -> ["nine"]
+      10 -> ["ten"]
+      _  ->
+        letter = Riichi.to_letter(tile)
+        if letter != nil do [letter] else [] end
+    end
+    color_classes = Enum.filter(@valid_tile_colors, &has_attr?(tile, [&1]))
+    id = cond do
+      hidden -> :"4x"
+      not_visible -> :"1x"
+      true -> id
+    end
+    number_class = if hidden or facedown or concealed do [] else number_class end
+    [
+      "tile", id,
+      facedown && "facedown",
+      transparent && "transparent",
+      inactive && "inactive",
+      hidden && "hidden",
+      dora && "dora",
+      highlight && "highlight",
+      last_sideways && "last-sideways",
+      reversed && "reversed",
+      anim && "anim",
+      played && "played",
+      sideways && "sideways",
+      just_played && "just-played",
+      riichi && "sideways",
+      selected && "selected",
+    ] ++ extra_classes ++ number_class ++ color_classes
+    |> Enum.reject(& &1 == false)
+  end
+
+  def call_to_tiles({_name, call}, replace_am_jokers \\ false) do
+    tiles = remove_attr(call, ["_facedown"])
+    if replace_am_jokers and has_matching_tile?(tiles, [:"1j"]) do
+      # replace all american jokers with the nonjoker tile
+      nonjoker = Enum.find(tiles, &not same_tile(&1, :"1j")) |> strip_attrs()
+      Enum.map(tiles, fn t -> if same_tile(t, :"1j") do nonjoker else t end end)
+    else tiles end
+  end
+
+  # get the principal tile from a meld consisting of all one tile and jokers
+  def _get_joker_meld_tile(tiles, joker_tiles, tile_behavior) do
+    # don't pass tile_behavior to has_matching_tile?/3 here
+    # so that we only get exact matches for the joker tile
+    non_joker_tiles = Enum.reject(tiles, &has_matching_tile?([&1], joker_tiles))
+    has_joker = length(non_joker_tiles) < length(tiles)
+    has_nonjoker = length(non_joker_tiles) > 0
+    if has_joker and has_nonjoker do
+      [tile | rest] = non_joker_tiles
+      tile = strip_attrs(tile)
+      if Enum.all?(rest, &same_tile(&1, tile, tile_behavior)) do tile else nil end
+    else nil end
+  end
+  def get_joker_meld_tile(call, tile_behavior) do
+    _get_joker_meld_tile(call_to_tiles(call), Map.keys(tile_behavior.mappings), tile_behavior)
+  end
+
+  def replace_base_tile(tile, new_base_tile) do
+    {_tile, attrs} = to_attr_tile(tile)
+    add_attr(new_base_tile, attrs)
+  end
+
+  def replace_jokers(tiles, joker_tiles, tile_behavior) do
+    # don't pass tile_behavior to has_matching_tile?/3 here
+    # so that we only get exact matches for the joker tile
+    if has_matching_tile?(tiles, joker_tiles) do
+      List.duplicate(_get_joker_meld_tile(tiles, joker_tiles, tile_behavior), length(tiles))
+    else tiles end
+  end
+
+  @pon_like_calls ["pon", "daiminkan", "kakan", "ankan", "am_pung", "am_kong", "am_quint"]
+  def replace_jokers_in_calls(calls, joker_tiles, tile_behavior) do
+    Enum.map(calls, fn {name, call} ->
+      if name in @pon_like_calls and Enum.any?(call, &has_matching_tile?([&1], joker_tiles)) do
+        meld_tile = get_joker_meld_tile({name, call}, tile_behavior)
+        {name, Enum.map(call, &replace_base_tile(&1, meld_tile))}
+      else {name, call} end
+    end)
+  end
+  
+  def maximum_bipartite_matching(adj, pairing \\ %{}, pairing_r \\ %{}) do
+    orig_size = map_size(pairing)
+    {pairing, pairing_r} = maximum_bipartite_matching_hopcroft_karp_pass(adj, pairing, pairing_r)
+    if map_size(pairing) > orig_size do
+      maximum_bipartite_matching(adj, pairing, pairing_r)
+    else {pairing, pairing_r} end
+  end
+  defp maximum_bipartite_matching_hopcroft_karp_pass(adj, pairing, pairing_r) when map_size(adj) == 0, do: {pairing, pairing_r}
+  defp maximum_bipartite_matching_hopcroft_karp_pass(adj, pairing, pairing_r) do
+    start_pts = Map.keys(adj) -- Map.keys(pairing)
+    {layers, _, _, _} = Enum.reduce_while(1..map_size(adj), {[], start_pts, MapSet.new(start_pts), MapSet.new()}, fn _, {layers, prev_layer, visited, visited_r} ->
+      opp_layer = prev_layer
+      |> Enum.flat_map(fn u -> Enum.reject(adj[u], &Map.get(pairing, u) == &1) end)
+      |> Enum.uniq()
+      |> Enum.reject(& &1 in visited_r)
+
+      new_layer = opp_layer
+      |> Enum.map(&Map.get(pairing_r, &1, nil))
+      |> Enum.uniq()
+      |> Enum.reject(& &1 in visited)
+
+      visited = MapSet.union(visited, MapSet.new(new_layer))
+      visited_r = MapSet.union(visited_r, MapSet.new(opp_layer))
+      acc = {[MapSet.new(new_layer) | layers], new_layer, visited, visited_r}
+      if nil in new_layer or MapSet.size(visited) == map_size(adj) do
+        {:halt, acc}
+      else
+        {:cont, acc}
+      end
+    end)
+    layers = Enum.reverse([MapSet.new() | layers])
+    for from <- start_pts, reduce: {pairing, pairing_r} do
+      {pairing, pairing_r} ->
+        case maximum_bipartite_matching_hopcroft_karp_dfs(from, adj, layers, pairing, pairing_r) do
+          {pairing, pairing_r, _layer, true} -> {pairing, pairing_r}
+          _                                  -> {pairing, pairing_r}
+        end
+    end
+  end
+  defp maximum_bipartite_matching_hopcroft_karp_dfs(nil, _adj, _layers, pairing, pairing_r) do
+    {pairing, pairing_r, MapSet.new(), true}
+  end
+  defp maximum_bipartite_matching_hopcroft_karp_dfs(u, adj, [layer | layers], pairing, pairing_r) do
+    Enum.reduce_while(adj[u], {pairing, pairing_r, layer, false}, fn v, {pairing, pairing_r, layer, _found} ->
+      case Map.get(pairing_r, v) do
+        nil    -> {:halt, {Map.put(pairing, u, v), Map.put(pairing_r, v, u), MapSet.new(), true}}
+        next_u ->
+          if next_u in layer do
+            layer = MapSet.delete(layer, next_u)
+            case maximum_bipartite_matching_hopcroft_karp_dfs(next_u, adj, layers, pairing, pairing_r) do
+              {pairing, pairing_r, _layer, true} -> {:halt, {Map.put(pairing, u, v), Map.put(pairing_r, v, u), MapSet.new(), true}}
+              _                                  -> {:cont, {pairing, pairing_r, layer, false}}
+            end
+          else {:cont, {pairing, pairing_r, layer, false}} end
+      end
+    end)
+  end
+
+  # @decorate cacheable(cache: RiichiAdvanced.Cache.Memo, key: {:inverse_frequencies, visible_tiles, TileBehavior.hash(tile_behavior)})
+  def inverse_frequencies(visible_tiles, tile_behavior) do
+    freqs = if is_map(visible_tiles) do visible_tiles else
+      # keep only attrs that appear in the original wall before taking frequencies
+      valid_attrs = Map.keys(tile_behavior.tile_freqs)
+      |> Enum.map(fn tile ->
+        {_, attrs} = to_attr_tile(tile)
+        MapSet.new(attrs)
+      end)
+      |> Enum.reduce(MapSet.new(), &MapSet.union/2)
+      visible_tiles
+      |> Enum.map(fn tile -> 
+        {tile, attrs} = to_attr_tile(tile)
+        add_attr(tile, Enum.filter(attrs, & &1 in valid_attrs))
+      end)
+      |> Enum.frequencies()
+    end
+    Map.merge(tile_behavior.tile_freqs, freqs, fn _k, l, r -> l - r end)
+    |> Enum.filter(fn {_tile, freq} -> freq > 0 end)
+    |> Map.new()
+  end
+
+  @css_color_regex ~r/^#[a-fA-F0-9]{6}$|^#[a-fA-F0-9]{3}$|^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$|^rgba\(\d{1,3},\s*\d{1,3},\s*\d{1,3},\s*[\d.]+\)$|^[a-zA-Z]+$/
+  def css_color_regex, do: @css_color_regex
+
+
+
+  # why are these not builtin
+  def _split_on([], _delim, acc, ret), do: [acc | ret]
+  def _split_on([x | xs], delim, acc, ret) when x == delim, do: _split_on(xs, delim, [], [acc | ret])
+  def _split_on([x | xs], delim, acc, ret), do: _split_on(xs, delim, [x | acc], ret)
+  def split_on(xs, delim), do: _split_on(Enum.reverse(xs), delim, [], [])
+
+  def map_over_values(map, f) do
+    for {k, v} <- map, into: %{}, do: {k, f.(v)}
+  end
+
+  def sequence(xs) do
+    xs
+    |> Enum.with_index()
+    |> Enum.reduce_while([], fn
+      {{:ok, x}, _i}, acc -> {:cont, [x | acc]}
+      {{:error, msg}, i}, _acc -> {:halt, {:error, "index #{i}: #{if is_binary(msg) do msg else inspect(msg) end}"}}
+    end)
+    |> case do
+      {:error, _} = err -> err
+      acc -> {:ok, Enum.reverse(acc)}
+    end
+  end
+
+  @spec insert_at(binary(), binary(), integer()) :: binary()
+  def insert_at(s1, s2, ix) do
+    {l, r} = String.split_at(s1, if ix < 0 do String.length(s1) + ix + 1 else ix end)
+    l <> s2 <> r
+  end
+
+  def permutations([]), do: [[]]
+  def permutations(xs) when is_list(xs) do
+    for x <- xs, rest <- permutations(xs -- [x]), do: [x | rest]
+  end
+  def make_permutations(xs) when is_list(xs) do
+    for ys <- permutations(xs) do
+      Map.new(Enum.zip(xs, ys))
+    end
+  end
+
+  def walk_json(json, fun) do
+    # this just walks the json and calls fun on every node
+    case fun.(json) do
+      json when is_list(json) -> Enum.map(json, &walk_json(&1, fun))
+      json when is_map(json) -> Map.new(json, fn {k, v} -> {k, walk_json(v, fun)} end)
+      json -> json
+    end
+  end
+
+  def reduce_json(json, fun, acc \\ []) do
+    # preorder walks every node, accumulating an accumulator
+    # fun should look like `fn elem, acc -> new_acc end`
+    case fun.(json, acc) do
+      acc when is_list(json) -> Enum.reduce(json, acc, &reduce_json(&1, fun, &2))
+      acc when is_map(json)  -> Enum.reduce(json, acc, fn {_k, v}, acc -> reduce_json(v, fun, acc) end)
+      acc -> acc
+    end
+  end
+
+  # walks the json, calling fun on every node,
+  # where fun returns a list that should get merged into any containing list
+  def splat_json(json, fun), do: splat_json_rec(json, fun) |> Enum.at(0)
+  def splat_json_rec(json, fun) do
+    case fun.(json) do
+      [json] when is_list(json) ->
+        [for x <- json, item <- splat_json_rec(x, fun) do
+          item
+        end]
+      [json] when is_map(json) -> [Map.new(json, fn {k, v} -> {k, splat_json(v, fun)} end)]
+      jsons -> jsons # branch b
+    end
+  end
+
+  # get_from_points_list([2, "Han", 1, "Shuugi"], "Han") == 2
+  def get_from_points_list(points_list, point_name) do
+    ix = Enum.find_index(points_list, & &1 == point_name)
+    if ix != nil do Enum.at(points_list, ix - 1) else 0 end
+  end
+
+  def style_call(style, call_choice, called_tile) do
+    if called_tile != nil do
+      tiles = if "call" in style or "call_sideways" in style do call_choice else call_choice ++ [called_tile] end
+      for style_spec <- style do
+        case style_spec do
+          "call"                                           -> called_tile
+          "call_sideways"                                  -> called_tile |> add_attr(["_sideways"])
+          ix when is_integer(ix)                           -> Enum.at(tiles, ix)
+          [ix, attrs] when is_integer(ix)                  -> Enum.at(tiles, ix) |> add_attr(attrs)
+          ["sideways", ix] when is_integer(ix)             -> Enum.at(tiles, ix) |> add_attr(["_sideways"])
+          ["sideways", [ix, attrs]] when is_integer(ix)    -> Enum.at(tiles, ix) |> add_attr(["_sideways" | List.wrap(attrs)])
+          ["sideways", "call"]                             -> called_tile |> add_attr(["_sideways"])
+          ["sideways", tile]                               -> to_tile(tile) |> add_attr(["_sideways"])
+          ["1x", ix] when is_integer(ix)                   -> Enum.at(tiles, ix) |> add_attr(["_facedown"])
+          ["1x", [ix, attrs]] when is_integer(ix)          -> Enum.at(tiles, ix) |> add_attr(["_facedown" | List.wrap(attrs)])
+          ["1x", "call"]                                   -> called_tile |> add_attr(["_facedown"])
+          ["1x", tile]                                     -> to_tile(tile) |> add_attr(["_facedown"])
+          ["1x_sideways", ix] when is_integer(ix)          -> Enum.at(tiles, ix) |> add_attr(["_facedown", "_sideways"])
+          ["1x_sideways", [ix, attrs]] when is_integer(ix) -> Enum.at(tiles, ix) |> add_attr(["_facedown", "_sideways" | List.wrap(attrs)])
+          ["1x_sideways", "call"]                          -> called_tile |> add_attr(["_facedown", "_sideways"])
+          ["1x_sideways", tile]                            -> to_tile(tile) |> add_attr(["_facedown", "_sideways"])
+          tile                                             -> to_tile(tile)
+        end
+      end
+    else call_choice end
+  end
+
+  def serialize_hand(hand, calls \\ [], winning_tile \\ nil) do
+    hand = hand
+    |> Enum.map(&to_tile/1)
+    |> sort_tiles()
+    |> _serialize_hand()
+    calls = calls
+    |> Enum.reverse()
+    |> Enum.map_join(fn {name, call} ->
+      dir = case Enum.find_index(call, &has_attr?(&1, "sideways")) do
+        0 -> "<"
+        1 -> "^"
+        2 -> ">"
+        3 -> ">"
+        _ -> ":"
+      end
+      " " <> name <> dir <> _serialize_hand(remove_attr(call, ["_facedown", "_sideways"]))
+    end)
+    winning_tile = if winning_tile != nil do
+      " " <> _serialize_hand([to_tile(winning_tile)])
+    else "" end
+    hand <> calls <> winning_tile
+  end
+  defp _serialize_hand(hand) do
+    # separate hand into suits and parenthesize anything that has more than one digit, or has attrs
+    Enum.group_by(hand, fn
+      {id, _attrs} -> Atom.to_string(id) |> String.last()
+      id -> Atom.to_string(id) |> String.last()
+    end)
+    |> Enum.map(fn {suit, tiles} ->
+      Enum.map_join(tiles, fn
+        {id, []} when length(id) > 1 -> "(#{serialize_tile(id, suit)})"
+        {id, []} -> serialize_tile(id, suit)
+        {id, attrs} -> "(#{serialize_tile(id, suit)}@#{Enum.join(attrs, "&")})"
+        id when length(id) > 1 -> "(#{serialize_tile(id, suit)})"
+        id -> serialize_tile(id, suit)
+      end) <> suit
+    end)
+    |> Enum.join()
+  end
+  defp serialize_tile(id, suit) do
+    t = Atom.to_string(id) |> String.replace_suffix(suit, "")
+    if String.length(t) == 1 do t else "(#{t})" end
+  end
+
+  # parse the hand: a sequence of numbers or paren clauses 12(34@attr1&attr2)567m
+  # for example, the above gives 1m 2m 34m@attr1&attr2 5m 6m 7m
+  defguard is_suit(c) when c in ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
+  @call_dirs [":", ">", "^", "<"]
+  @call_seats [:self, :shimocha, :toimen, :kamicha]
+  def deserialize_hand(hand, rules_ref) when is_binary(hand) do
+    hand = String.split(hand, " ", trim: true)
+    # merge any calls without a direction into hand
+    {hand, calls} = Enum.split_with(hand, &not String.contains?(&1, @call_dirs))
+    # last hand is winning tile
+    
+    {hand, winning_tile} = if length(hand) >= 2 do
+      {hand, winning_tile} = Enum.split(hand, -1)
+      winning_tile = _deserialize_hand(winning_tile |> Enum.at(0)) |> Enum.at(0)
+      {hand, winning_tile}
+    else {hand, nil} end
+    hand = Enum.join(hand)
+
+    buttons = Rules.get(rules_ref, "buttons", %{})
+    hand = _deserialize_hand(hand)
+    calls = for name_call <- calls do
+      delimiter_ix = Enum.find_index(@call_dirs, &String.contains?(name_call, &1))
+      if delimiter_ix != nil do
+        delimiter = Enum.at(@call_dirs, delimiter_ix)
+        seat = Enum.at(@call_seats, delimiter_ix) |> Atom.to_string()
+        case String.split(name_call, delimiter, trim: true) do
+          [name, call] ->
+            [called_tile | call_choice] = _deserialize_hand(call)
+            ret = Map.get(buttons[name], "call_style", %{})
+            |> Map.get(seat, 0..length(call_choice))
+            |> style_call(call_choice, called_tile)
+            [{name, ret}]
+          _ -> 
+            Logger.error("parse_hand_notation: failed to parse call #{inspect(name_call)}")
+            []
+        end
+      else [] end
+    end
+    |> Enum.concat()
+    {hand, calls, winning_tile}
+  end
+  defp _deserialize_hand(hand) do
+    {acc, _suit} = hand
+    |> String.split(["(", ")"], trim: false)
+    |> Enum.map_every(2, &String.graphemes/1) # even indices are numeric, take each as a grapheme
+    |> List.flatten()
+    |> Enum.reverse()
+    |> Enum.reduce({[], ""}, fn
+      c, {acc, _} when is_suit(c) -> {acc, c}
+      c, {acc, suit} -> case String.split(c, "@", trim: false) do
+        [_] -> {[c <> suit | acc], suit}
+        [id, attrs] -> {[{id <> suit, String.split(attrs, "&", trim: true)} | acc], suit}
+        _ ->
+          Logger.error("parse_hand_notation: failed to parse #{inspect(c)}")
+          {acc, suit}
+      end
+    end)
+    acc
+    |> Enum.map(&to_tile/1)
+    |> sort_tiles()
+  end
+end

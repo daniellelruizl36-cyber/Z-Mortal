@@ -1,0 +1,240 @@
+default draw_after_flower_phase, false
+default auto_flower_by_default, false
+default undiscardable, false
+default must_discard, false
+default replace_from_dead_wall, true
+default shift_dead_wall, false
+default matching_flower_value, 0
+default matching_flower_han, !han
+default four_flowers_value, 0
+default four_flowers_han, !han
+
+on after_initialization do
+  add_rule("Rules", "Flowers",
+  """
+  %{all_flowers}
+  - Flower tiles must be declared and replaced by a draw from the back of the wall.
+  - A flower tile is worth %{value} %{han} if its number matches your seat (1=east, 2=south, 3=west, 4=north).\
+  """, %{
+    all_flowers: @all_flowers,
+    value: !matching_flower_value, han: !matching_flower_han,
+  })
+  if !matching_flower_value > 0 do
+    cond do
+      seat_is("east") -> add_rule("$value $han", "Flowers", "%{value} %{han} for each flower tile whose number matches your seat. Since your current seat is East, that would be the following flowers: %{flowers}", %{all_flowers: @all_flowers, value: !matching_flower_value, han: !matching_flower_han, flowers: @east_flowers})
+      seat_is("south") -> add_rule("$value $han", "Flowers", "%{value} %{han} for each flower tile whose number matches your seat. Since your current seat is South, that would be the following flowers: %{flowers}", %{all_flowers: @all_flowers, value: !matching_flower_value, han: !matching_flower_han, flowers: @south_flowers})
+      seat_is("west") -> add_rule("$value $han", "Flowers", "%{value} %{han} for each flower tile whose number matches your seat. Since your current seat is West, that would be the following flowers: %{flowers}", %{all_flowers: @all_flowers, value: !matching_flower_value, han: !matching_flower_han, flowers: @west_flowers})
+      seat_is("north") -> add_rule("$value $han", "Flowers", "%{value} %{han} for each flower tile whose number matches your seat. Since your current seat is North, that would be the following flowers: %{flowers}", %{all_flowers: @all_flowers, value: !matching_flower_value, han: !matching_flower_han, flowers: @north_flowers})
+    end
+  end
+  if !four_flowers_value > 0 do
+    add_rule("Rules", "Flowers", "- Having all 4 flower tiles of the same set is instead worth %{four_flowers_value} %{four_flowers_han}.", %{four_flowers_value: !four_flowers_value, four_flowers_han: !four_flowers_han})
+  end
+end
+
+define_const all_flowers, ["1f", "2f", "3f", "4f", "1g", "2g", "3g", "4g"]
+define_const east_flowers, ["1f", "1g"]
+define_const south_flowers, ["2f", "2g"]
+define_const west_flowers, ["3f", "3g"]
+define_const north_flowers, ["4f", "4g"]
+apply append, "wall", +@all_flowers
+
+if !matching_flower_value > 0 do
+  define_yaku yaku, "Seat Flower", [!matching_flower_value, !matching_flower_han], seat_is("east") and match(["flowers"], ~m"1f:1")
+  define_yaku yaku, "Seat Flower", [!matching_flower_value, !matching_flower_han], seat_is("south") and match(["flowers"], ~m"2f:1")
+  define_yaku yaku, "Seat Flower", [!matching_flower_value, !matching_flower_han], seat_is("west") and match(["flowers"], ~m"3f:1")
+  define_yaku yaku, "Seat Flower", [!matching_flower_value, !matching_flower_han], seat_is("north") and match(["flowers"], ~m"4f:1")
+  define_yaku yaku, "Seat Season", [!matching_flower_value, !matching_flower_han], seat_is("east") and match(["flowers"], ~m"1g:1")
+  define_yaku yaku, "Seat Season", [!matching_flower_value, !matching_flower_han], seat_is("south") and match(["flowers"], ~m"2g:1")
+  define_yaku yaku, "Seat Season", [!matching_flower_value, !matching_flower_han], seat_is("west") and match(["flowers"], ~m"3g:1")
+  define_yaku yaku, "Seat Season", [!matching_flower_value, !matching_flower_han], seat_is("north") and match(["flowers"], ~m"4g:1")
+end
+if !four_flowers_value > 0 do
+  define_yaku yaku, "All Flowers", [!four_flowers_value, !four_flowers_han], match(["flowers"], ~m"1f:1, 2f:1, 3f:1, 4f:1"), ["Seat Flower"]
+  define_yaku yaku, "All Seasons", [!four_flowers_value, !four_flowers_han], match(["flowers"], ~m"1g:1, 2g:1, 3g:1, 4g:1"), ["Seat Season"]
+end
+
+define_set any_flower, ~s"1f|2f|3f|4f|1g|2g|3g|4g"
+define_match any_flower, ~m"nojoker, any_flower:1"
+define_button start_flower,
+  display_name: "Reveal flower",
+  show_when: status("initial_flowers")
+    and our_turn
+    and match(["hand", "draw"], ["any_flower"]),
+  unskippable: true
+  do
+    big_text(!flower_name)
+    set_status("flower")
+    flower(+@all_flowers)
+    if !shift_dead_wall do shift_tile_to_dead_wall(1) end
+    if !replace_from_dead_wall do draw(1, "opposite_end") else draw end
+    recalculate_buttons
+  end
+
+define_button start_no_flower,
+  display_name: "No flowers",
+  show_when: status("initial_flowers")
+    and our_turn
+    and not_match(["hand", "draw"], ["any_flower"]),
+  unskippable: true
+  do
+    big_text("No Flowers")
+    set_status("no_flowers")
+    move_tiles("draw", "hand")
+    advance_turn
+    recalculate_buttons
+  end
+
+cond do
+  !undiscardable -> define_play_restriction "flower", true
+  !must_discard -> define_play_restriction "not_flower", match(["hand", "draw"], ["any_flower"])
+  true -> define_play_restriction any, status("initial_flowers")
+end
+
+define_button flower,
+  display_name: "Flower",
+  show_when: our_turn
+    and has_draw
+    and not_just_discarded
+    and status_missing("initial_flowers", "just_called")
+    and match(["hand", "draw"], ["any_flower"]),
+  unskippable: !undiscardable
+  do
+    big_text(!flower_name)
+    set_status("flower")
+    unset_status("kan", "double_kan")
+    flower(+@all_flowers)
+    if no_tiles_remaining do
+      advance_turn
+    else
+      if !shift_dead_wall do shift_tile_to_dead_wall(1) end
+      if !replace_from_dead_wall do draw(1, "opposite_end") else draw end
+    end
+  end
+
+define_auto_button _5_auto_flower,
+  display_name: "F",
+  desc: "Automatically declare all flowers.",
+  enabled_at_start: !auto_flower_by_default,
+  persistent: true
+  do
+    if buttons_include("start_flower") do
+      press_button("start_flower")
+      press_first_call_button("start_flower")
+    end
+    if buttons_include("start_no_flower") do
+      press_button("start_no_flower")
+    end
+    if buttons_include("flower") do
+      press_button("flower")
+      press_first_call_button("flower")
+    end
+  end
+
+on after_start do
+  set_status_all("initial_flowers")
+  if !draw_after_flower_phase do
+    uninterruptible_draw(-1) # un-draw
+  end
+end
+
+on before_turn_change do
+  unset_status("flower")
+end
+
+on before_call do
+  unset_status("flower")
+end
+
+on after_turn_change do
+  # exit flower declaration stage
+  if everyone_status("no_flowers") do
+    unset_status_all("no_flowers", "initial_flowers")
+    set_status_all("first_turn")
+    as others do move_tiles("draw", "hand") end
+    if !draw_after_flower_phase do
+      uninterruptible_draw(1)
+    end
+  end
+end
+
+# 7/8 flower zone
+default seven_list, "yaku"
+default seven_name, "Seven Flowers"
+default seven_value, 0
+default seven_han, !han
+default eight_list, "yaku"
+default eight_name, "Eight Flowers"
+default eight_value, 0
+default eight_han, !han
+default win_on, "none"
+
+if !seven_value > 0 do
+  on after_initialization do
+    add_rule("$value $han", !seven_name, "You won with seven flowers.", %{value: !seven_value, han: !seven_han})
+    update_rule("$value $han", !seven_name, "%{example_hand}", %{value: !seven_value, han: !seven_han, example_hand: ~t"1234f123g"})
+  end
+  # seven flowers simply won't be scored if win_on is 8, because the button won't appear
+  define_yaku !seven_list, !seven_name, [!seven_value, !seven_han], match(["draw", "flowers"], ~m"unique, (1f 2f 3f 4f 1g 2g 3g 4g):7")
+  define_yaku_precedence !seven_name, ["Seat Flower", "Seat Season", "All Flowers", "All Seasons"]
+end
+
+if !eight_value > 0 do
+  on after_initialization do
+    add_rule("$value $han", !eight_name, "You won with eight flowers.", %{value: !eight_value, han: !eight_han})
+    update_rule("$value $han", !eight_name, "%{example_hand}", %{value: !eight_value, han: !eight_han, example_hand: ~t"1234f1234g"})
+  end
+  define_yaku !eight_list, !eight_name, [!eight_value, !eight_han], match(["draw", "flowers"], ~m"unique, (1f 2f 3f 4f 1g 2g 3g 4g):8")
+  if !seven_value > 0 do define_yaku_precedence !eight_name, [!seven_name] end
+end
+
+cond do
+  equals(!win_on, "7 flowers") ->
+    on after_initialization do
+      add_rule("Rules", "Flowers", "- As soon as you draw a seventh flower, you may declare a win for an additional 3 Fan, or 8 Fan if you have eight flowers.")
+    end
+  equals(!win_on, "8 flowers") ->
+    on after_initialization do
+      add_rule("Rules", "Flowers", "- As soon as you draw an eighth flower, you may declare a win for an additional 8 Fan.")
+    end
+end
+
+define_button flower_tsumo,
+  display_name: !tsumo_name,
+  show_when: our_turn
+    and has_draw
+    and match(["draw"], ~m"unique, any_flower:1")
+    and ((equals(!win_on, "7 flowers") and match(["flowers"], ~m"unique, any_flower:6"))
+     or (equals(!win_on, "8 flowers") and match(["flowers"], ~m"unique, any_flower:7")))
+  do
+    big_text(!tsumo_name)
+    pause(1000)
+    reveal_hand
+    win_by_draw
+  end
+
+define_button flower_chankan,
+  display_name: !ron_name,
+  show_when: not_our_turn
+    and match(["last_called_tile"], ~m"unique, any_flower:1")
+    and ((equals(!win_on, "7 flowers") and match(["flowers"], ~m"unique, any_flower:6"))
+     or (equals(!win_on, "8 flowers") and match(["flowers"], ~m"unique, any_flower:7")))
+  do
+    big_text(!ron_name)
+    pause(1000)
+    reveal_hand
+    win_by_draw
+  end
+
+define_button flower_ron,
+  display_name: !ron_name,
+  show_when: not_our_turn
+    and match(["last_discard"], ~m"unique, any_flower:1")
+    and ((equals(!win_on, "7 flowers") and match(["flowers"], ~m"unique, any_flower:6"))
+     or (equals(!win_on, "8 flowers") and match(["flowers"], ~m"unique, any_flower:7")))
+  do
+    big_text(!ron_name)
+    pause(1000)
+    reveal_hand
+    win_by_draw
+  end

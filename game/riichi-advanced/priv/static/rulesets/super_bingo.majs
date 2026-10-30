@@ -1,0 +1,115 @@
+define_base_ruleset sanma
+set display_name, "Super Bingo Sanma"
+set tutorial_link, "https://fansubbing.com/2024/03/10/super-bingo-sanma-rules/"
+require "kansai_flowers"
+require "zan_scoring"
+require "kansai_draw"
+require "yaku/kansai_chiitoitsu"
+require "shuugi", %{worth: 10, pao_pays_all: true, starting_shuugi: 1000}
+require "super_bingo_tictactoe"
+require "super_bingo_tulips"
+require_after "super_bingo_yaku"
+require_after "riichi_fix_rules_tabs"
+apply set_append, "default_mods", [
+  %{name: "honba", config: %{value: 1000}},
+  %{name: "lib/tobi", config: %{below: 1}},
+  %{name: "aka", config: %{pin: 1, sou: 1, man: 0}},
+  %{name: "kin", config: %{pin: 1, sou: 1, man: 0}},
+  %{name: "shiro_pocchi", config: %{ippatsu_only: false}},
+  "yaku/open_riichi",
+  %{name: "shuugi/kin", config: %{chips: 1, closed_only: false}},
+  %{name: "shuugi/ura", config: %{chips: 1}},
+  %{name: "shuugi/yakuman", config: %{allow_kazoe: false, per_yakuman: true, ron_chips: 50, tsumo_chips: 50}}
+]
+
+on after_initialization do
+  delete_rule("1 Han", "Chanta")
+  delete_rule("2 Han", "Junchan")
+  add_rule("3+ Han", "Chanta", "(Super Bingo) 3 han if each of the 5 blocks in your hand contains a terminal or honor. 4 han if closed.")
+  update_rule("3+ Han", "Chanta", "%{example_hand}", %{example_hand: ~t"12379p789s77z 11p1P 8p"})
+  add_rule("3+ Han", "Junchan", "(Super Bingo) 4 han if each of the 5 blocks in your hand contains a terminal. 6 han if closed.")
+  update_rule("3+ Han", "Junchan", "%{example_hand}", %{example_hand: ~t"12379p78999s 1P11p 8p"})
+  add_rule("3+ Han", "Renhou", "(Super Bingo) 6 han if you win off someone's discard before your first draw. Calls invalidate.")
+  delete_rule("1 Han", "Sanshoku")
+  delete_rule("2 Han", "Sanshoku Doukou")
+  delete_rule("Yakuman", "Kokushi Musou")
+  delete_rule("Yakuman", "Kokushi Musou Juusan Menmachi")
+  add_rule("Yakuman", "Nanashi Musou", "(Super Bingo) Yakuman if your winning hand consists of one of each terminal/seven/honor tile, with another copy of one of those tiles forming a pair.")
+  update_rule("Yakuman", "Nanashi Musou", "%{example_hand}", %{example_hand: ~t"799p179s1234567z 1p"})
+  add_rule("Yakuman", "Nanashi Musou Juusan Menmachi", "(Super Bingo) Double yakuman if your winning hand consists of one of each terminal/seven/honor tile and you won with a thirteen-sided wait for the pair.", 2)
+  update_rule("Yakuman", "Nanashi Musou Juusan Menmachi", "%{example_hand}", %{example_hand: ~t"179p179s1234567z 1p"})
+
+  delete_rule("2 Han", "Chiitoitsu")
+  add_rule("3+ Han", "Kansai Chiitoitsu", "(Super Bingo) 4 han if you win with seven pairs with a repeated pair. 8 han for two repeated pairs, yakuman for three.")
+  update_rule("3+ Han", "Kansai Chiitoitsu", "%{example_hand}", %{example_hand: ~t"2266m999p4477s33z 9p"})
+end
+
+# replace all 1m and 9m with 7p/7s
+on after_initialization do
+  add_rule("Tiles", "Additional Sevens", "(Super Bingo) The %{manzu} are replaced with %{sevens}.", %{manzu: ~t"11119999m", sevens: ~t"7777p7777s"})
+end
+replace all, "wall", "1m", "7p"
+replace all, "wall", "9m", "7s"
+
+# can't win with more than 4 sevens of a single suit
+on after_initialization do
+  add_rule("Rules", "Additional Sevens", "(Super Bingo) You may not use more than 4 of the same seven in your winning hand. If you have all 4 sevens, any potential wait on the same 7 is not counted as a wait (cannot put you in furiten).")
+end
+define_match standard_tenpai, ~m"exhaustive, (nojoker 7p):-5, (nojoker 7s):-5, mentsu:3, taatsu:1, pair:1 | exhaustive, mentsu:4, any:1"
+define_match chiitoitsu_tenpai, ~m"(nojoker koutsu):-1, (nojoker 7p):-5, (nojoker 7s):-5, pair:6, any:1"
+define_match tenpai, "standard_tenpai", "chiitoitsu_tenpai", "kokushi_tenpai"
+define_match standard_win, ~m"exhaustive, (nojoker 7p):-5, (nojoker 7s):-5, mentsu:4, pair:1"
+define_match chiitoitsu_win, ~m"(nojoker quad):-1, (nojoker 7p):-5, (nojoker 7s):-5, pair:7"
+define_match win, "standard_win", "chiitoitsu_win", "kokushi_win"
+
+# can't skip wins
+on after_initialization do
+  add_rule("Rules", "Unskippable Win", "(Super Bingo) You are not permitted to skip a winning tile.")
+end
+apply set, "buttons.ron.unskippable", true
+apply set, "buttons.tsumo.unskippable", true
+apply set, "buttons.chankan.unskippable", true
+
+# must open riichi if furiten
+on after_initialization do
+  add_rule("Rules", "Open Riichi", "(Super Bingo) If you are in furiten, then you are required to declare open riichi when possible.")
+end
+if defined("open_riichi") do
+  apply set, "buttons.open_riichi.unskippable", status("furiten")
+end
+
+# kazoe is worth 2 chips
+on after_initialization do
+  add_rule("Shuugi", "Kazoe Yakuman", "(Super Bingo) Actually, kazoe yakuman awards 2 chips flat.")
+end
+on after_win do
+  if points >= 13 do
+    push_message("earns 2 chips for kazoe yakuman")
+    shuugi_payment += 2
+  end
+end
+
+# shiro pocchi can choose unseen colored variants of tiles
+on after_initialization do
+  add_rule("Rules", "Shiro Pocchi", "(Super Bingo) If you win with shiro pocchi %{9z}, it takes on the identity of any unseen tile. In particular, it can take on the identity of a red five or gold five as long as those tiles are not visible to you. (Unimplemented:) The game automatically chooses for you, with priority %{35p} >  %{05p} >  %{5p}.", %{"9z": ~t"9z", "35p": ~t"35p", "05p": ~t"05p", "5p": ~t"5p"})
+end
+# TODO
+
+define_mod_category "Super Bingo", prepend: true
+define_mod super_bingo_rainbow_sevens, name: "Rainbow Sevens", category: "Super Bingo", desc: "One of the eight 7p and one of the eight 7s is rainbow-colored. They are worth 10 shuugi each (same as how gold dora is worth 1)."
+define_mod super_bingo_grand_cross, conflicts: ["lib/grand_cross"], order: 1, name: "Grand Cross", category: "Super Bingo", desc: "You may declare NEWS (one of each wind) as a concealed kan that grants immediate shuugi payments. There is also a special gold north tile that doubles said payments if you use it."
+config_mod super_bingo_grand_cross, name: "add_gold_pei", values: [false, true], default: true
+define_mod super_bingo_seven_rush, name: "Seven Rush (unimplemented)", category: "Super Bingo", desc: "unimplemented"
+define_mod super_bingo_bases_loaded, name: "Bases Loaded (unimplemented)", category: "Super Bingo", desc: "unimplemented"
+define_mod super_bingo_crazy_cherry, name: "Crazy Cherry (unimplemented)", category: "Super Bingo", desc: "unimplemented"
+define_mod super_bingo_orochi, name: "Orochi (unimplemented)", category: "Super Bingo", desc: "unimplemented"
+
+remove_mod sanma_disable_pei
+remove_mod sanma_pei_yakuhai
+remove_mod "lib/yaku/riichi_renhou"
+
+apply append, "default_mods", [
+  %{name: "starting_score", config: %{points: 30000}},
+  "super_bingo_rainbow_sevens",
+  %{name: "super_bingo_grand_cross", config: %{add_gold_pei: true}},
+]

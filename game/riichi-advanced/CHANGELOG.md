@@ -1,0 +1,473 @@
+
+# Changelog
+- __16 Oct 2026__: v1.5.3:
+  + Added B30FJ chicken hand challenge mod
+  + Added MCR "MIL Rules" mod
+  + Added `manzu_only` toggle to chuurenpoutou
+  + Added global "Change AI Speed" mod
+  + Added more yaku to Tokyo Rules: sanrenkou, renkaihou, choupaihou etc, otakaze sankou, uushin tsuukan
+  + Added tile notation import/export to scorer
+  + Added toggles to shousharin/daisharin mod to allow disabling certain suits
+  + Changed Amerijong charleston choice UI to not combine the hand with just-obtained tiles until after the choice
+  + Changed Vietnamese AI to always call if possible
+  + Changed Vietnamese Seven Pairs to require self-draw by default
+  + Changed minefield AI to run faster via rust backend
+  + Fixed AI getting stuck or looping due to call button choices (hopefully)
+  + Fixed HKOS not paying out points upon a self-pick win
+  + Fixed Show Waits showing nonexistent tiles and incorrect tile counts
+  + Fixed Throwing Flowers/Jokers allowing honor tiles in Vietnamese
+  + Fixed Vietnamese flowers from being discardable even after replacing flowers/jokers
+  + Fixed Amerijong not allowing joker swaps with flower calls
+  + Fixed Amerijong not allowing kong, quint, sextet when calling flowers
+  + Fixed ankans and flower calls not behaving well in scorer
+  + Fixed cache issue where reading default mods results in a crash
+  + Fixed certain valid riichi discards being grayed out when a joker matching that discard is in hand
+  + Fixed jokers being bounceable via jokers in Vietnamese
+  + Fixed misc mods in riichi being mixed with the Shuugi category
+  + Fixed mod dropdowns toggling the mod off if you press the top or bottom edge
+  + Fixed seat shuffling not working at all sometimes
+  + Fixed stuck state when pause actions race against round end checks
+  + Fixed various issues preventing some yaku from being scored
+  + Fixed weird wrapping hand visuals for mobile
+  + Fixed winning hand hover-over showing mixed triplet arrangements outside cosmic riichi
+- __2 Sep 2026__: v1.5.2:
+  + Added 1952 Hochi rules ruleset
+  + Added MCR chicken hand challenge mod (untested)
+  + Added a partial implementation of 1957 Tokyo rules
+  + Added joker assignment printout in scorer
+  + Added rules text for when certain mods are missing in riichi (Ippatsu, abortive draws, kuikae nashi)
+  + Added tile indices button to scorer
+  + Changed vietnamese flower button to declare all flowers at once
+  + Fixed AI discarding flowers instead of declaring them
+  + Fixed AI not pressing 7-flower-win button
+  + Fixed being able to erroneously keep vietnamese flowers
+  + Fixed head bump not being enabled in vietnamese mahjong
+  + Fixed kokushi treating different white dragons as different tiles
+  + Fixed minefield mode and made it compatible with shouhai
+  + Fixed multiple NFNL or win buttons appearing together in vietnamese mahjong
+  + Fixed readable rules not reloading in rooms and scorer when mods change
+  + Fixed some tile positioning errors on mobile when a hand is more than 14 tiles long
+  + Fixed tiles with attributes in scorer
+  + Fixed vietnamese anything/suit jokers being discardable outside of a NFNL attempt
+  + Fixed washizu displayed score not dividing by 10
+  + Updated some translations
+  + Updated vietnamese yaku to newest iteration of ruleset
+  + Internal stuff
+    * Added `subtract_from_pot` and `subtract_honba` actions
+    * Added condition caching for yaku `when` checks and button `show_when` checks
+    * Added more actions for editing rules text and tabs
+    * Added more debug flags in `debug.ex` (specific yaku, specific mods)
+    * Changed behavior of `after_win` to run after _everyone_ has run `before_win`
+    * Changed yaku evaluation order to depend on precedence instead of yaku list order
+    * Constants can be used for actions now
+    * Decomposed riichi ruleset yaku into individual mods
+    * Mod loader now circumvents the 65536 byte limit for jq pipelines
+    * Ported remaining rulesets (ningbo, singaporean, and taiwanese) to majs
+    * Tests now use default mods set in each ruleset (and can specify exclusions)
+- __23 Aug 2026__: v1.5.1:
+  + Add rules tabs to relevant locations
+  + Added arishiiaru mode
+  + Added more tips
+  + Added solver support for joker kans (and nobekan)
+  + Added two jokers as riichi mods: kanchan honors and five honors
+  + Changed super bingo chips value (1000->10)
+  + Fix tenhou win removing a random tile in hand
+  + Fixed arisu mod messages
+  + Fixed log viewer to actually work
+  + Fixed scorer not showing mods and also crashing
+  + Fixed ura not showing after arisu
+  + Fixed various game crashes
+  + Fixed visual bug where winning tile is added to hand
+  + Fixed visual bug with upside-down tiles
+  + Made Fuzhou AI always call if possible
+  + Made Fuzhou mahjong and Tianjin mahjong really fast
+  + Made riichi grand cross worth 16 fu instead of 1 han
+  + Update `replace_yaku` majs command to support only replacing the value of the yaku
+- __19 Aug 2026__: v1.5.0:
+  + New things
+    * Added 0 as an option for riichi bets
+    * Added 19m nukidora sanma mod that lets you declare 19m like pei
+    * Added Arisu (Alices) mod where you flip tiles on the wall for chips after a concealed hand win
+    * Added Grand Cross riichi mod (kan but it's all 4 winds)
+    * Added Niipatsu riichi mod (ippatsu but for second go-around)
+    * Added Nobekan riichi mod (kan but it's a sequence of 4) with 3-nobekan and 4-nobekan yaku
+    * Added Speed Tonpuu (riichi variant)
+    * Added Super Bingo (sanma variant) with tictactoe win-con, tulips/Alices, rainbow sevens, and grand cross with gold pei
+    * Added Yami (Battle of Darkness) riichi mod
+    * Added Yes Riichi Ankan mod to allow any ankan during riichi
+    * Added Yonshoku yakus for Star Suit mod
+    * Added button to clear messages in message log
+    * Added labels, like "No Yaku" and "Furiten", to Show Waits dialog
+    * Added mobile 'piano-keys' UI for easier discarding
+    * Added robbing nukidora sanma mod that lets you rob any nukidora to win
+    * Added rules text to every existing variant
+    * Added some url query flags to persist selected variant across page navigations/refreshes
+    * Added visible graphics for shuugi (chips)
+    * Amerijong AI now calls tiles (sometimes)
+    * Changed ao and kindora to award shuugi instead of 2/3 han
+    * Changed error banner to be up top instead of some random text popping up
+    * Moved Zan Sanma from being a Kansai Sanma preset, to being its own variant in the main menu
+    * Updated Vietnamese mahjong rules (more jokers, NFNL hands, progressive scoring, bouncing jokers) (Thanks @Dget!)
+    * Version number in main menu now links to this changelog
+  + Updates and fixes
+    * An attempt was made to make the Washizu mod score correctly
+    * Balanced some variables in the Just Like Modded Minecraft modpack (thanks Sophie!)
+    * Bots no longer constantly chombo in Chinitsu Challenge
+    * Fix discards sometimes emitting duplicate messages
+    * Fix nagashi not being invalidated by a Cancellable Riichi discard
+    * Fixed MahjLife card link (thanks Sophie!)
+    * Fixed broken image links in riichi docs (thanks @bill876 on GitHub!)
+    * Fixed cancellable riichi stopping you from calling Ron
+    * Fixed flowers not being callable in Amerijong 
+    * Fixed jokers erroneously filling singles and pairs in the Show Nearest Hands view
+    * Fixed nagashi being triggered on every exhaustive draw
+    * Fixed riichi scoring not having labels like Baiman
+    * Fixed scoring screen arrows drawing strangely in some browsers (Chrome)
+    * Fixed sichuan bloody rules having you discard before a void suit declaration
+    * Fixed solver crash on Windows (Thanks Sophie!)
+    * Fixed some UI elements (buttons, calls, revealed tiles, shuugi, scry window) covering each other
+    * Fixed some tutorials crashing
+    * Fixed ten, blue dragon, star suit, and galaxy mods' interoperability
+    * Fixed tiles with differing attributes being treated as two different waits for scoring purposes
+    * Fixed transparent dotted tiles not appearing
+    * Fixed waitfinder not finding any waits in joker-heavy variants (i.e. Modded Minecraft variant)
+    * HKOS self-pick yaku no longer requires a closed hand
+    * Hand scorer is now accessible from the main menu
+    * Invisible tiles no longer show up as a normal (flipped) tile to other players
+    * Mostly fixed hand arrangement when you hover over a hand in the yaku screen
+    * Rewrote riichi scoring since it was behaving strangely (e.g. showing score-after-honba as the hand score)
+    * Score ledger now shows the LHS of most operations
+    * Show Waits no longer fails to work with Cancellable Riichi mod
+    * Show Waits now displays a loading dialog
+    * Various optimizations (notably in AI discarding logic, win checking, wait checking, and joker solving) (Thanks Sophie and PolyWolf!)
+    * You can no longer hover other other player's hidden calls to reveal them
+    * You can no longer kan shiro pocchi with any tile when drawn in riichi (except with other white dragons)
+    * You can no longer replace flowers/nukidora in hand (not draw) while in riichi
+  + MahjongScript and internal game logic
+    * Added `!=` and `not_equals` for expressions
+    * Added `@debug_hands` flag in debug.ex, which overlays tile identities over each tile
+    * Added `@debug_tsumogiri_bots` flag in debug.ex, which makes bots tsumogiri-only
+    * Added `fail` keyword to match definitions, which instantly fails a match (useful for disabling existing matches from another script)
+    * Added `flower_or_joker` tile spec
+    * Added `has_yaku` condition as an `after_scoring`-only shorthand for `has_yaku_with_hand`, `has_yaku_with_call`, `has_yaku_with_discard`
+    * Added `persistent` key to auto buttons, to prevent them from going back to defaults every round
+    * Added `rename_rule_tab` to move or merge rules tabs
+    * Added `require` and `require_after` toplevel command to load another MahjongScript file as a module (see docs), also `default` toplevel command to specify default variables in those loaded fiiles
+    * Added `round(num)`, `round_up(num)`, `round_down(num)`, `mod(n1, n2)`, `min(n1, n2)`, `max(n1, n2)` in expressions
+    * Added `set_suit_ordering` alongside the existing `set_tile_ordering`, except it's for defining suits
+    * Added a `technical_notes.md` document in `documentation/`
+    * Added toplevel `cond do ... end` for conditional compilation
+    * Bumped Elixir dependencies (and removed unnecessary ones)
+    * Call styling now supports adding arbitrary attributes
+    * Can now specify an condition instead of just true/false for the `unskippable` key in buttons
+    * Expressions can now be used on either side of a comparison operator
+    * Fix Big Three Dragons not scoring in MCR
+    * Fixed strange crash when using golden chun mod
+    * Fixed toriuchi mod simply not working
+    * Moved from ETS tables to Nebulex caches for internal caching
+    * Paths can now fanout with `[]` (but only one time per path) 
+    * Rewrote action evalution to fix a race condition when calling functions (if the function uses `pause`, the caller would proceed before the function unpauses) 
+    * Rewrote many mods in MahjongScript to take in config variables (when imported via `require`)
+    * Rewrote renchan logic (now all controlled by mods via round-end `change_dealership` and `add_honba` commands)
+    * Rewrote the mod loader like 3 separate times, now it's super fast
+    * Variables can now be used in toplevel expressions
+    * `def` keyword for defining functions now supports `prepend` and `append` options
+
+- __15 Jul 2026__: v1.4.0:
+  + Added `/scoringtest` for testing scoring for any ruleset/mods
+  + Added `at_least` and `at_most` metaconditionals to MahjongScript (previously only in json)
+  + Added `clear_responsibilities` to MahjongScript
+  + Added `cond` clause to MahjongScript, for large numbers of cases
+  + Added `define_play_restriction` to MahjongScript
+  + Added a better UI for score transfers as well as ways to customize it
+  + Added a feature where hovering over a tile in the rules tab will zoom in on it
+  + Added a ledger-type way for specifying scoring in MahjongScript (see documentation)
+  + Added Chii mod to Sanma (thanks Sophie!)
+  + Added documentation for more modes including Zung Jung (thanks Sophie!), MCR, and Fuzhou
+  + Added empty untracked folders for logs, to make local instances smoother to set up (thanks Sophie!)
+  + Added English Yaku Names mod for Riichi
+  + Added finalized v1.3 Sakicard art (thanks Sakicards community!)
+  + Added INSTALL.md for all install instructions for setting up Riichi Advanced locally
+  + Added left-side tabs to many modes including MCR, Fuzhou, Sichuan (thanks Sophie!)
+  + Added MCR and Tianjin tutorial
+  + Added Rust dependency (for performance)
+  + Added ryuukyokurenchan mod for HKOS (thanks Sophie!)
+  + Added ryuukyokurenchan scoring key (thanks Sophie!)
+  + Added the WRC 2025 rules preset for Riichi
+  + Added tile indices support for most tiles (thanks Sophie!)
+  + Added Tiles tab to every pertinent Riichi mod, as well as to Malaysian and SBR (thanks Sophie!)
+  + Added tips to the room screen
+  + Added toggle for number of transparent tiles for Washizu mod (thanks Sophie!)
+  + Added toplevel `if`/`define` in MahjongScript for conditional compilation-type needs
+  + Added tsumo loss mods to Sanma (after removing it)
+  + Changed "Skip" button in win screen to say "Waiting" when pressed
+  + Changed all instances of "Fly" to "Fei" in Malaysian (thanks Sophie!)
+  + Changed certain Malaysian features as mods (4 fei win, fei payments, and seven pairs)
+  + Changed star suit coloring from red to pink
+  + Fixed a bug involving fractional points (thanks Sophie!)
+  + Fixed a bug where `remove_yaku` and `replace_yaku` would cause a crash, if the yaku didn't already exist
+  + Fixed a bug where aka tiles were being counted multiple times (thanks Sophie!)
+  + Fixed a bug where Custom would load your ruleset twice
+  + Fixed a bug where dora would not be shiny after declaring kan
+  + Fixed a bug where hidden calls would not be flipped face-up with `flip_all_calls_faceup` (thanks Sophie!)
+  + Fixed a bug where mods wouldn't load via the majstest page
+  + Fixed a bug where NFHT wasn't always awarded in Vietnamese (thanks Sophie!)
+  + Fixed a bug where one of the "Back" buttons on the log menu didn't work (thanks Sophie!)
+  + Fixed a bug where open riichi tsumo would award you yakuman (thanks Sophie!)
+  + Fixed a bug where rooms would get stuck on the first loaded ruleset
+  + Fixed a bug where some tiles would vanish from the winning hand when hovering over it in the win screen
+  + Fixed a bug where Tanfonhou checked for an unsupported condition (thanks Sophie!)
+  + Fixed a bug where the JC (ignore joker-only calls) button would skip valid calls involving flowers (thanks Sophie!)
+  + Fixed a bug where uma wasn't applied to all players in Riichi (thanks Sophie!)
+  + Fixed a bug where Washizu mod would end the game after one hand (thanks Sophie!)
+  + Fixed a bug where wins by self-draw would be scored way higher than they should be (thanks Sophie!)
+  + Fixed a crash when loading an empty ruleset into the custom ruleset page
+  + Fixed a visual bug with corners of tiles on main menu
+  + Fixed all Fei-based yaku in Malaysian
+  + Fixed Amerijong nearest hands display not updating sometimes
+  + Fixed Cancellable Riichi acting strangely (hopefully)
+  + Fixed Chromium display issues (hopefully)
+  + Fixed crash when entering lobby screen
+  + Fixed crash when removing yaku that doesn't exist in MahjongScript
+  + Fixed Fifth Tile mod interacting badly with other mods (thanks Sophie!)
+  + Fixed flowers and tenhou in Malaysian (thanks Sophie!)
+  + Fixed flowers not being counted correctly in Malaysian (thanks Sophie!)
+  + Fixed Kansai Chiitoi yaku
+  + Fixed many interactions between the Star Suit, Ten, Galaxy Mahjong, Blue Dragon mods (thanks Sophie!)
+  + Fixed many many erroneous mod interactions (thanks Sophie!)
+  + Fixed Milky Way yakuman not being scored in Galaxy Mahjong (thanks Sophie!)
+  + Fixed more issues with MCR yaku interactions (thanks Sophie!)
+  + Fixed most crashes in existing tutorials (thanks Sophie!)
+  + Fixed nagashi for East (thanks Sophie!)
+  + Fixed some bugs caused by Riichi being dependent on base.majs (thanks Sophie!)
+  + Fixed some CSS bugs on various screens (thanks Sophie!)
+  + Fixed some weird behaviours when multiple people are trying to leave a game
+  + Fixed some yakuman not being scored properly in Cosmic Riichi (thanks Sophie!)
+  + Fixed the Cancellable Riichi mod (thanks Sophie!)
+  + Fixed the joker solver not running correctly on Windows
+  + Fixed the spelling of "Ittsuu" across the entire repository (thanks Sophie!)
+  + Fixed the white-on-white text in the language dropdown menu (thanks Sophie!)
+  + Removed Python dependency
+- __10 Feb 2026__: v1.3.3:
+  + Added a 白 variant of the white dragon, used in Galaxy Mahjong (thanks Sophie)
+  + Added an 'abort pass' button to American Mahjong (thanks Sophie)
+  + Added an experimental .majs to .json translator at /majstest
+  + Added documentation for how mods work: `documentation/mods.md`
+  + Added instructions for running Riichi Advanced on Windows (thanks Sophie)
+  + Added methods for running Riichi Advanced as a Nix flake on Docker (thanks Will)
+  + Added numerous Cards for American Mah-jongg (thanks Sophie)
+  + Fixed 20 copies of the same message playing when calculating scores in Malaysian
+  + Fixed a crash bug involving the joker solver
+  + Fixed all sequences yaku not being awarded sometimes (thanks Sophie)
+  + Fixed auto-discard button not working in Riichi (thanks Sophie)
+  + Fixed auto-flower button not working in Kansai (thanks Sophie)
+  + Fixed flowers not being scored correctly in MCR (thanks Sophie)
+  + Fixed fly jokers not being replaceable in Malaysian (thanks Sophie)
+  + Fixed many American tests (thanks Sophie)
+  + Fixed many bugs with winning hands in American (thanks Sophie)
+  + Fixed many chinese localizations (thanks Sophie)
+  + Fixed rules text for Sanshoku Doujun showing a Doukou hand as an example
+  + Fixed some documentation errors about `any_discard`
+  + Fixed some sources of HKOS/Classical crashes (thanks Sophie)
+  + Fixed the white text on white (thanks Sophie)
+  + Fixed tile sides visually flickering in some browsers (thanks Will)
+  + Fixed documentation for tile sprites (thanks Sophie)
+- __8 Apr 2025__: v1.3.2:
+  + Added `~t`, and `~T` sigils in MahjongScript for specifying lists of tiles
+  + Added 5th tile tenpai mod to riichi
+  + Added 12 tile pao mod to HKOS
+  + Added aka 1,3,7,9 mods (thanks jake)
+  + Added animated rainbow tiles
+  + Added as-conditions to MahjongScript
+  + Added `replace n` command to MahjongScript
+  + Added better graphics for mobile zoom
+  + Added Card-Free, NMJL 2025, and PIE rules to american mahjong (thanks Sophie)
+  + Added dora shine animation
+  + Added `make_responsible_for` action for deciding pao
+  + Added MahjongScript tutorial to `documentation/`
+  + Added WIP localization support for Chinese and Japanese
+  + Added unsuited numbers and dragons to american match grammar
+  + Added randomize mods button
+  + Added `set_scoring_header` action
+  + Added some symmetry/combinatorics nonsense to joker solver making it 2x faster
+  + Added test coverage for sichuan bloody
+  + Changed fu calculations to be based on tile attributes rather than hardcoded tile identities
+  + Changed nagashi and tenpai payments to be action-based rather than hardcoded
+  + Fixed AI crashing randomly due to slow server response
+  + Fixed log viewer somewhat
+  + Fixed minefield not really working
+  + Fixed sichuan bloody not really following the ruleset
+  + Fixed some joker bugs related to having tile attributes on both the joker and the target tile
+  + Fixed some UI issues, especially in Safari
+- __20 Mar 2025__: v1.3.1:
+  + Added ability to unselect marked tiles in hand
+  + Added `counter_more_than`, `counter_less_than` conditions
+  + Added `dragon` and `wind` and `not_*` tile specs
+  + Added mobile tooltips
+  + Added `not` for conditions in mahjongscript
+  + Added or-patterns to American match specifications
+  + Added or-patterns to set definitions
+  + Added "responsibility" logic to Zung Jung
+  + Added reset honba on exhaustive draw mod to Fuzhou
+  + Added test coverage for space mahjong, cosmic riichi, galaxy mahjong, and zan sanma -- we're at 419 tests now
+  + Added top-level JSON constants that get substituted on load
+  + Added Zan Sanma preset for kansai sanma
+  + Fixed AI going too fast and discarding invalid tiles when cancellable riichi mod is on
+  + Fixed button clicks not registering if you click the top of a button
+  + Fixed Concealed Hand being scored for Seven Pairs and Thirteen Terminals hands in Zung Jung
+  + Fixed cosmic riichi awarding both kontsu and triplet yaku for the same hand
+  + Fixed facedown tiles identity being visible if you just look at the HTML
+  + Fixed head bump actually being a race of who clicks the ron button first
+  + Fixed joker solver not being able to solve for tiles with attributes
+  + Fixed robbing the gold not working for nondealers in Fuzhou mahjong
+  + Fixed some more crashes
+  + Fixed transparent Washizu tiles not being replaced with aka/ao/kindora
+  + Fixed variables not being substituted in certain locations in functions
+- _14 Mar 2025__: v1.3.0:
+  + Added `dismantle_calls` match spec keyword that will only remove the matching part from a call
+  + Added `modify_winner` and `modify_payout` actions for custom scoring
+  + Added `payout` amount and `winners` seat spec
+  + Added a "tile on top of wall" visual for Fuzhou
+  + Added a couple mods for Fuzhou (mostly replacing flowers revealed as gold vs allowing flowers to be used as gold)
+  + Added ability to roll multiple dice
+  + Added ability to use MahjongScript (.majs) in place of JSON for both rulesets and config (i.e. custom mods)
+  + Added tab system for rules text
+  + Added test coverage for Hefei, Fuzhou, Ningbo, Tianjin, and Zung Jung -- we're at 318 tests now
+  + Added Zung Jung ruleset and mods (thanks Sophie!)
+  + Changed main documentation to be for MahjongScript instead of JSON (JSON docs are still available)
+  + Changed win screen to display multiple flowers more compactly
+  + Fixed `before_call`, `after_call`, `*_discarded`, `seat_is`, and some tile attrs
+  + Fixed auto discard autobutton skipping tsumo and ankan in all variants
+  + Fixed chanta/junchan never recognizing 11123 as 11 123
+  + Fixed Cosmic Riichi crashes
+  + Fixed declaring a flower allowing you to draw a replacement tile from an exhausted wall
+  + Fixed double clicking on tiles discarding your draw instead
+  + Fixed drawing from the dead wall removing the bottom tile before the tile above it
+  + Fixed index numbers revealing what number tile a hidden tile is
+  + Fixed joker flowers being able to form triplets/quads in Fuzhou
+  + Fixed riichi sticks being put on the wrong player
+  + Fixed skip calls button skipping chankan in all variants
+  + Fixed the 1223 wait on 2 counting as both a single wait and a closed wait in Ningbo
+  + Fixed Tianjin Baida Reuse not counting as part of the minimum score of 4
+  + Fixed Tianjin multipliers not counting as part of the minimum score of 4
+  + Fixed winning hand arrangement function taking forever to run
+- +_1 Mar 2025__: v1.2.0:
+  + Added ability for mods to add rules text
+  + Added ability to configure fu calculations
+  + Added ability to configure individual mods with parameters (aka, riichi, tobi, etc)
+  + Added cancellable riichi mod
+  + Added Chinese Classical ruleset
+  + Added custom styles (custom tile numbering, tile back color, and tablecloth color)
+  + Added displaying numbers on the corner of tiles (off by default)
+  + Added full documentation for match keywords, match targets, interrupt levels, and scoring
+  + Added Fuzhou, Tianjin, Ningbo, Hefei rulesets (thanks Sophie)
+  + Added more tile colors (lightblue, brown, pink, rainbow)
+  + Added preset mod packs for Riichi
+  + Added string interpolation for `push_message` and `big_text` actions
+  + Added uma mod
+  + Added various tests
+  + Added zombie blanks mod to american mahjong (thanks Sophie)
+  + Changed discards to be double click, not single click
+  + Changed riichi to automatically enable auto-discard
+  + Fixed AI dealing into open riichi
+  + Fixed allowing calls that softlock you due to kuikae
+  + Fixed american mahjong buttons
+  + Fixed ao and kin not counting
+  + Fixed chankan in sanma
+  + Fixed dead hand check for american (again)
+  + Fixed ippatsu not working (again)
+  + Fixed kansai sanma having 4x dora
+  + Fixed minefield dora and other bugs
+  + Fixed safari viewport issues
+  + Fixed seat shuffling not working
+  + Fixed several crashes
+- __17 Feb 2025__: v1.1.1:
+  + Added tutorial for cosmic riichi and galaxy mahjong
+  + Added rules and strategy document for MCR
+  + Added shiny dora mod
+  + Added ability to hover over a winning hand to break it into sets
+  + Added lots of tests
+  + Added like a million jokers (with corresponding Riichi mods)
+  + Added custom aka
+  + Added four local yaku: ketsupaihou, chinchii toushii, rentsuu honitsu, and dorahairi chinroutou chiitoitsu
+  + Added the ability to have attributes be transparent to the tile checker by prefixing with `_` 
+  + Added play button to tutorial menu
+  + Fixed dora/aka/ura awarding
+  + Fixed any-tile jokers in hand turning every tile in hand into an any-tile joker
+  + Fixed chankan and anfuun for cosmic mahjong
+  + Fixed cosmic mod support with kan mod
+  + Fixed animation for calls (specifically added kan and added-added kan in cosmic)
+  + Fixed `"set_tile_ordering_all"` only setting the current player's tile ordering
+  + Fixed `"set_tile_ordering_all"` also removing all tile aliases
+  + Fixed `"has_hell_wait"` condition never being true
+  + Fixed 0.5-han yaku not letting you ron even if they combine to 1+ han
+  + Fixed fu calculation for added pon and added-added-kan in cosmic
+  + Fixed weird navigation where you go home -> room -> lobby -> home (now it's home -> room -> home)
+  + Fixed agariyame and tenpaiyame ending the game prematurely
+  + Fixed bamboo tiles being hard to read (hopefully)
+  + Fixed AI thinking they're tenpai when they're very much not
+  + Fixed cache stuff (things run faster now, especially AI)
+  + Fixed rigging the wall using `"starting_hands"` leading to incorrect distribution of tiles in the wall
+  + Fixed layout errors when using Safari
+- __12 Feb 2025__: v1.1.0:
+  + Added [CONTRIBUTING.md](CONTRIBUTING.md)
+  + Added tutorial screen as well as a way to create and share custom tutorials! If you are interested in creating a tutorial just select any ruleset in the main menu and hit Learn -> Create your own tutorial! [Here is the tutorial JSON documentation.](documentation/tutorials.md)
+  + Added some rules documentation for Vietnamese mahjong
+  + Added documentation for all available tiles
+  + Added a lot of test machinery (we can actually simulate test games now)
+  + Added Shiny Dora mod
+  + Added It's All Aka? mod
+  + Added Riichi mod (extracted from Riichi ruleset)
+  + Added Kan mod (extracted from Riichi ruleset)
+  + Added aka versions of every standard tile + blue and gold fives
+  + Added like two dozen new jokers + some riichi mods that add them to the game
+  + Added galaxy shuugi (+1 shuugi when galaxy tile is used as their original value) for galaxy mahjong
+  + Added AI names
+  + Added Heavenly Hand to American mahjong (thanks Sophie)
+  + Added MahjLife card to American mahjong (thanks Sophie)
+  + Added seven strategies for awarding points when tsumo loss is off
+  + Added support for `"points2"` multiplier for `"multiplier"` scoring method
+  + Added `"tag_tiles"` and `"tag_dora"` actions
+  + Added `"add_attr_tagged"` action
+  + Added a new `"name"` argument to `"ryuukyoku"` action
+  + Renamed `"save_tile_aliases"`/`"load_tile_aliases"` to `"save_tile_behavior"`/`"load_tile_behavior"`
+  + Fixed flower yaku emitting errors in MCR
+  + Fixed fully concealed calls from being "visible" to the tile counter
+  + Fixed fully concealed calls from printing its contents to the message log
+  + Fixed sanma going into West round when it shouldn't
+  + Fixed some log crashes (log replays are still very unstable)
+  + Fixed lots of miscellaneous crashes
+  + Fixed kazoe yakuman mod upgrading everyone's limit hand by one tier
+  + Fixed flower not being callable in american mahjong
+  + Fixed dead hand marker in american mahjong
+  + Fixed chiitoitsu not working if you have jokers in hand
+  + Fixed golden chun mod compatibility with other mods
+  + Fixed incorrect fu calculation for shanpon and kontsu waits
+  + Some optimizations
+- __4 Feb 2025__: v1.0.2:
+  + Added ability to view running public games in lobby screen
+  + Added auto-pei autobutton to Sanma
+  + Added Kansai Sanma ruleset
+  + Added Milky Way yakuman to Galaxy Mahjong (thanks Sophie)
+  + Added more details about `match` and `mark` in documentation
+  + Changed SBR to penalize having a voided suit rather than disallow having a voided suit (thanks Sophie)
+  + Fixed revealing seven dora/ura instead of five in sanma
+  + Fixed ten tiles not being able to form kontsu (thanks jake but lowercase)
+  + Fixed seats not being reserved for disconnected players
+- __3 Feb 2025__: v1.0.1:
+  + Added ability to join running games (though you still cannot view running games)
+  + Added documentation for SBR and Galaxy Mahjong (thanks Sophie)
+  + Added kansai chiitoitsu mod
+  + Added no tsumo loss mod
+  + Added `"save_tile_aliases"` and `"load_tile_aliases"` actions
+  + Added session tracking to mitigate disconnection issues (needs testing)
+  + Fixed "unique" specifier for match definition
+  + Fixed chanta not accepting honor sequences in space mahjong
+  + Fixed crash in Singaporean when checking for multisided wait
+  + Fixed crash when call buttons contain malformed actions
+  + Fixed crash when checking if ankan changes your waits while in riichi.
+  + Fixed crash when navigating between pages
+  + Fixed flowers being treated as calls
+  + Fixed nagashi being achievable by a dead hand (Chombo mod)
+  + Fixed replacement tiles not being drawn from dead wall visually
+- __1 Feb 2025__: v1.0.0: 17 rulesets, hundreds of mods, multiplayer, it's all there.

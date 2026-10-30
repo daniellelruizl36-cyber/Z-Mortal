@@ -1,0 +1,22 @@
+require "pao_base"
+
+on after_initialization do
+  if rule_exists("Rules", "Sekinin Barai (Pao)") do
+    update_rule("Rules", "Sekinin Barai (Pao)", "(Suukantsu Pao) Dealing the last tile called for kan for a suukantsu hand also counts.")
+  else
+    add_rule("Rules", "Sekinin Barai (Pao)", "If you deal the last tile called for kan for a suukantsu hand, you are responsible for that single yakuman payment if they tsumo, or half of the yakuman payment if they ron off someone else.")
+  end
+end
+
+on after_call do
+  if last_call_is("daiminkan") and match(["calls"], ~m"(daiminkan ankan kakan):4") do
+    as caller do
+      make_responsible_for("callee", "Suukantsu", as: "last_seat")
+      set_status("pao", as: "callee")
+      pao_yakuman += 1
+    end
+  end
+end
+
+apply append, "constants.pao_yaku", ["Suukantsu"]
+

@@ -1,0 +1,351 @@
+defmodule RiichiAdvanced.TestUtils do
+  alias RiichiAdvanced.GameState.American, as: American
+  alias RiichiAdvanced.GameState.Debug, as: Debug
+  alias RiichiAdvanced.GameState.Rules, as: Rules
+  alias RiichiAdvanced.GameState.TileBehavior, as: TileBehavior
+  alias RiichiAdvanced.Match, as: Match
+  alias RiichiAdvanced.ModLoader.ModState, as: ModState
+  alias RiichiAdvanced.LogControlState, as: LogControl
+  alias RiichiAdvanced.Utils, as: Utils
+  import ExUnit.Assertions
+
+  # @suppress_io true
+  @suppress_io false
+
+  def initialize_test_state(ruleset, mods, excluded_mods \\ [], config \\ "{}")
+  def initialize_test_state(_ruleset, nil, _excluded_mods, _config) do
+    IO.puts("initialize_test_state: You passed in `nil` instead of a mod list! Check if you are using an undefined module attribute like @zan_mods.")
+  end
+  def initialize_test_state(ruleset, mods, excluded_mods, config) do
+    rules_ref = Rules.load_default_ruleset(ruleset, mods, excluded_mods, config)
+    # IO.inspect(Rules.get(rules_ref, "score_calculation"), limit: :infinity)
+    room_code = Ecto.UUID.generate()
+    args = [room_code: room_code, ruleset: ruleset, mods: mods, config: config, rules_ref: rules_ref, name: Utils.via_registry("game", ruleset, room_code)]
+    game_spec = Supervisor.child_spec(%{
+      id: {RiichiAdvanced.GameSupervisor, ruleset, room_code},
+      start: {RiichiAdvanced.GameSupervisor, :start_link, [args]}
+    }, restart: :temporary)
+    {:ok, _game} = DynamicSupervisor.start_child(RiichiAdvanced.GameSessionSupervisor, game_spec)
+    [{game_state, _}] = Utils.registry_lookup("game_state", ruleset, room_code)
+
+    # suppress all IO from game_state
+    if @suppress_io do
+      {:ok, io} = StringIO.open("")
+      Process.group_leader(game_state, io)
+    end
+
+    # give game_state ownership of rules_ref, so it always has access even if our process dies
+    # (also will be cleaned up when game_state dies)
+    :ets.give_away(rules_ref, game_state, :no_extra_info)
+
+    # activate game
+    GenServer.call(game_state, {:put_log_loading_mode, true})
+    GenServer.call(game_state, {:put_log_seeking_mode, true})
+    GenServer.cast(game_state, :initialize_test)
+    %LogControl.LogControl{
+      ruleset: ruleset,
+      room_code: room_code,
+      game_state_pid: game_state,
+    }
+  end
+
+  def verify_events(events) do
+    for {event, i} <- Enum.with_index(events) do
+      Map.put(event, "index", i)
+    end
+  end
+
+  defmacro assert_list(actual, expected) do
+    quote do
+      assert inspect(unquote(actual), charlists: :as_lists) == inspect(unquote(expected), charlists: :as_lists)
+    end
+  end
+
+  def test_yaku_advanced(ruleset, mods, excluded_mods, config, events, expected_winners \\ %{}, expected_state \\ %{}) do
+    if Debug.debug() == true do
+      assert false, "Debug.debug is on!"
+    end
+    test_state = initialize_test_state(ruleset, mods, excluded_mods, config)
+    GenServer.cast(test_state.game_state_pid, :sort_hands)
+
+    test_state = for event <- verify_events(events), reduce: test_state do
+      test_state -> case event["type"] do
+        "discard"         -> LogControl.send_discard(test_state, true, event)
+        "buttons_pressed" -> LogControl.send_button_press(test_state, true, event)
+        "mark"            -> LogControl.send_mark(test_state, true, event)
+        _                 -> test_state
+      end
+    end
+
+    state = GenServer.call(test_state.game_state_pid, :get_state)
+    GenServer.cast(test_state.game_state_pid, :terminate_game)
+
+    check_winner = fn seat, expected_winner ->
+      winner = state.winners[seat]
+      expected_winner
+      |> Enum.map(fn {k, v} ->
+          {expected, actual} = {v, Map.get(winner, k)}
+          if k == :yaku do
+            {k, MapSet.new(expected), MapSet.new(actual)}
+          else
+            {k, expected, actual}
+          end
+        end)
+      |> Enum.reduce([], fn {k, expected, actual}, acc ->
+        if expected == actual do acc else
+          [{k, actual, expected} | acc]
+        end
+      end)
+    end
+
+    case expected_winners do
+      :no_winners ->
+        assert Enum.empty?(state.winner_seats)
+        win_buttons = Enum.map(state.players, fn {seat, player} ->
+          {seat, Enum.filter(["ron", "chankan", "tsumo", "flower_win", "nfnl0", "nfnl1", "nfnl2"], & &1 in player.buttons)}
+        end)
+        expected_win_buttons = Enum.map(state.players, fn {seat, _player} -> {seat, []} end)
+        assert win_buttons == expected_win_buttons
+      :no_buttons ->
+        buttons = Map.new(state.players, fn {seat, player} -> {seat, player.buttons} end)
+        # RiichiAdvanced.LogControlState.print_game_state(%{game_state: state})
+        assert Enum.all?(buttons, fn {_seat, buttons} -> Enum.empty?(buttons) end)
+      _ ->
+        for {seat, expected_winner} <- expected_winners do
+          assert seat in state.winner_seats
+          errs = Enum.map(List.wrap(expected_winner), &check_winner.(seat, &1))
+          if [] not in errs do
+            if Debug.print_txns() do
+              IO.inspect(state.txns, label: "txns", limit: :infinity)
+              IO.puts("")
+            end
+            for tuples <- errs, {k, actual, expected} <- tuples do
+              IO.puts("#{k}:\n\n    #{inspect(actual)}\n\nexpected #{k}:\n\n    #{inspect(expected)}")
+            end
+            assert false
+          end
+        end
+    end
+
+    if Map.has_key?(expected_state, :delta_scores) do
+      delta_scores = for seat <- [:east, :south, :west, :north], seat in state.available_seats do
+        Map.get(state.delta_scores, seat, 0)
+      end
+      if delta_scores != expected_state.delta_scores do
+        IO.puts("")
+        if Debug.print_txns() do
+          IO.inspect(state.txns, label: "Final txns are", limit: :infinity)
+        end
+        if Debug.debug_actions() do
+          choices = for seat <- [:east, :south, :west, :north], seat in state.available_seats, into: %{} do
+            {seat, Map.get(state.delta_scores, :choice, nil)}
+          end
+          IO.inspect(choices, label: "Final choices are", limit: :infinity)
+        end
+      end
+      assert_list(delta_scores, expected_state.delta_scores)
+    end
+
+    if Map.has_key?(expected_state, :scores) do
+      cond do
+        is_map(expected_state.scores) ->
+          {scores, expected_scores} = for seat <- [:east, :south, :west, :north], seat in state.available_seats do
+            score = state.players[seat].score
+            {score, Map.get(expected_state.scores, seat, score)}
+          end
+          |> Enum.unzip()
+          assert_list(scores, expected_scores)
+        is_list(expected_state.scores) ->
+          scores = for seat <- [:east, :south, :west, :north], seat in state.available_seats do
+            state.players[seat].score
+          end
+          assert_list(scores, expected_state.scores)
+        true ->
+          IO.inspect("Invalid score spec #{inspect(expected_state.scores)}")
+      end
+    end
+
+    if Map.has_key?(expected_state, :shuugi) do
+      shuugi = for seat <- [:east, :south, :west, :north], seat in state.available_seats do
+        Map.get(state.players[seat].counters, "shuugi", 0)
+      end
+      assert_list(shuugi, expected_state.shuugi)
+    end
+  end
+
+  def test_subtract_calculation(state, hand, group, expected) do
+    hand = with {:ok, tiles} <- parse_tiles(hand) do Enum.map(tiles, &Utils.to_tile/1) end
+    group = with {:ok, tiles} <- parse_tiles(group) do Enum.map(tiles, &Utils.to_tile/1) end
+    expected = with {:ok, tiles} <- parse_tiles(expected) do Enum.map(tiles, &Utils.to_tile/1) end
+    tile_behavior = Map.put(state.players.east.tile_behavior, :all_attrs, ["dora"])
+    {_, _, tile_behavior} = Match.prepare_tiles([hand], [], tile_behavior)
+    hand = Match.encode(hand, tile_behavior)
+    group = Match.encode(group, tile_behavior)
+    expected = Match.encode(expected, tile_behavior)
+    encoded_aliases = tile_behavior.encoded_aliases
+    encoded_mapping = tile_behavior.encoded_mapping
+    encoded_joker_tiles = tile_behavior.encoded_joker_tiles
+    result = Match.subtract(hand, group, encoded_aliases, encoded_mapping, encoded_joker_tiles)
+    assert not is_nil(result)
+    assert Enum.sort(result.attrs) == Enum.sort(expected.attrs)
+  end
+
+  def test_remove_match_definition(state, hand, calls, match_definition, expected) do
+    hand = with {:ok, tiles} <- parse_tiles(hand) do Enum.map(tiles, &Utils.to_tile/1) end
+    expected = with {:ok, tiles} <- parse_tiles(expected) do Enum.map(tiles, &Utils.to_tile/1) end
+    results = Match.remove_match_definition(hand, calls, match_definition, state.players.east.tile_behavior)
+    assert not Enum.empty?(results)
+    assert Enum.sort(results |> Enum.at(0) |> Enum.at(0)) == Enum.sort(expected)
+  end
+
+  def test_wait_calculation(state, hand, calls, expected_waits) do
+    hand = interpret_hand(hand)
+    calls = interpret_calls(calls)
+    expected_waits = interpret_hand(expected_waits)
+    win_definitions = Rules.translate_match_definitions(state.rules_ref, ["win"])
+
+    waits = Match.get_waits(hand, calls, win_definitions, state.players.east.tile_behavior)
+    assert MapSet.new(waits) == MapSet.new(expected_waits)
+  end
+
+  def test_unneeded_tile_calculation(state, hand, calls, expected_tiles) do
+    hand = interpret_hand(hand)
+    calls = interpret_calls(calls)
+    expected_tiles = interpret_hand(expected_tiles)
+    tenpai_definitions = Rules.translate_match_definitions(state.rules_ref, ["tenpai"])
+
+    tiles = Match.get_unneeded_tiles_v2(hand, calls, tenpai_definitions, state.players.east.tile_behavior)
+    assert MapSet.new(tiles) == MapSet.new(expected_tiles)
+  end
+
+  def get_rules!(ruleset, mods) do
+    ruleset_json = ModState.load_ruleset(ruleset)
+    |> ModState.prepend_mods(mods)
+    |> ModState.extract_json()
+    assert {:ok, rules_ref} = Rules.load_rules(ruleset_json, ruleset)
+    rules_ref
+  end
+
+  # long notation
+  def parse_tiles(tiles_spec) when is_binary(tiles_spec) do
+    ret = for group <- String.split(tiles_spec, " ", trim: true), [_, num, suit | attrs] <- Regex.scan(~r/(\d+)([a-zA-Z])(@([a-zA-Z0-9_&]+))?/, group) do
+      tile = "#{num}#{String.downcase(suit)}"
+      attrs = case attrs do
+        [_, attrs] -> String.split(attrs, "&", trim: true)
+        _ -> []
+      end
+      attrs = if suit == String.upcase(suit) do ["_sideways" | attrs] else attrs end
+      if Enum.empty?(attrs) do tile else {tile, attrs} end
+    end
+    {:ok, ret}
+  end
+
+  # short notation
+  def sigil_t(hand, _modifiers), do: interpret_hand(hand)
+  def interpret_hand(hand) when is_binary(hand) do
+    case String.split(hand, " ", trim: true) do
+      [hand_spec] -> for [_, nums, suit] <- Regex.scan(~r/(\d+)([a-zA-Z])/, hand_spec), num <- String.graphemes(nums), do: Utils.to_tile("#{num}#{suit}")
+      [hand_spec | call_spec] -> [interpret_hand(hand_spec) | interpret_calls(call_spec)]
+    end
+  end
+  defp interpret_call(call) do
+    with [call_name, call] <- String.split(call, ":", trim: true) do
+      {call_name, interpret_hand(call)}
+    end
+  end
+  defp interpret_calls(calls) when is_list(calls), do: Enum.map(calls, &interpret_call/1)
+  defp interpret_calls(calls) when is_binary(calls), do: interpret_calls(String.split(calls, " ", trim: true))
+  defp test_generic(ruleset, mods, excluded_mods, test_spec) do
+    hand = Keyword.get(test_spec, :hand, [])
+    [hand | calls] = if is_list(Enum.at(hand, 0)) do hand else [hand] end
+    {hand, [winning_tile]} = Enum.split(hand, -1)
+    rules_ref = get_rules!(ruleset, mods)
+    wall = Rules.get(rules_ref, "wall", [])
+    unused = wall -- hand
+    non_furiten_tile = if winning_tile == :"1z" do :"2z" else :"1z" end
+    starting_draws = Enum.take(unused, 3) ++ [non_furiten_tile] ++ Enum.take(Enum.drop(unused, 3), 2) ++ [winning_tile, winning_tile]
+    config = """
+    {
+      "starting_hand": {
+        "north": #{Jason.encode!(hand)}
+      },
+      "starting_calls": {
+        "north": #{Jason.encode!(Enum.map(calls, fn {name, call} -> [name, call] end))}
+      },
+      "starting_draws": #{Jason.encode!(starting_draws)}
+    }
+    """
+    events = Keyword.get(test_spec, :pre_events, []) ++ [
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 0), "player" => 0, "tsumogiri" => true},
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 1), "player" => 1, "tsumogiri" => true},
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 2), "player" => 2, "tsumogiri" => true},
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 3), "player" => 3, "tsumogiri" => true},
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 4), "player" => 0, "tsumogiri" => true},
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 5), "player" => 1, "tsumogiri" => true},
+      %{"type" => "discard", "tile" => Enum.at(starting_draws, 6), "player" => 2, "tsumogiri" => true},
+    ] ++ Keyword.get(test_spec, :post_events, [])
+    outcome = Keyword.get(test_spec, :outcome, :no_winners)
+    test_yaku_advanced(ruleset, mods, excluded_mods, config, events, outcome)
+  end
+
+  # usage:
+  # TestUtils.test_win(ruleset, mods, excluded_mods, 
+  #   hand: ["2m", "2m", "2p", "2p", "2p", "2p", "2s", "2s", "2s", "2s", "7z", "7z", "7z", "7z"],
+  #   win_button: "ron",
+  #   yaku: [],
+  # )
+  def test_win(ruleset, mods \\ [], excluded_mods \\ [], test_spec) do
+    win_button = Keyword.get(test_spec, :win_button, "ron")
+    outcome = %{
+      north: %{
+        yaku: Keyword.get(test_spec, :yaku, []),
+      }
+    }
+    post_events = [
+      %{"type" => "buttons_pressed", "buttons" => [nil, nil, nil, %{"button" => win_button}]},
+    ]
+    test_spec = Keyword.put(test_spec, :outcome, outcome)
+    test_spec = Keyword.put(test_spec, :post_events, post_events)
+    test_generic(ruleset, mods, excluded_mods, test_spec)
+  end
+
+  # usage:
+  # TestUtils.test_no_win(ruleset, mods, excluded_mods,
+  #   hand: ["2m", "2m", "2p", "2p", "2p", "2p", "2s", "2s", "2s", "2s", "7z", "7z", "7z", "2z"],
+  # )
+  def test_no_win(ruleset, mods, excluded_mods, test_spec) do
+    test_spec = Keyword.put(test_spec, :outcome, :no_winners)
+    test_generic(ruleset, mods, excluded_mods, test_spec)
+  end
+
+  defp match_hand(rules_ref, match_definition_name, hand, calls, tile_aliases) do
+    hand = interpret_hand(hand)
+    calls = interpret_calls(calls)
+    {am_win_definitions, win_definitions} = Enum.split_with(Rules.get(rules_ref, match_definition_name <> "_definition"), &is_binary/1)
+    translated_win_definitions = Rules.translate_sets_in_match_definitions(win_definitions, Rules.get(rules_ref, "set_definitions"))
+    translated_am_win_definitions = American.translate_american_match_definitions(am_win_definitions)
+    win_definitions = translated_win_definitions ++ translated_am_win_definitions
+    tile_mappings = for {tile1, attrs_aliases} <- tile_aliases, {attrs, aliases} <- attrs_aliases, tile2 <- aliases, reduce: %{} do
+      ret ->
+        new_tiles = MapSet.new([Utils.add_attr(tile1, attrs)])
+        Map.update(ret, tile2, new_tiles, &MapSet.union(&1, new_tiles))
+    end
+    tile_behavior = %TileBehavior{ aliases: tile_aliases, mappings: tile_mappings, tile_freqs: Enum.frequencies(Rules.get(rules_ref, "wall")) }
+    # show defns that have the "debug" keyword in them
+    for definition <- translated_am_win_definitions, "debug" in definition do
+      IO.inspect(definition, label: "debug_am_match_definitions")
+    end
+    result = for defn <- win_definitions, reduce: nil do
+      nil -> if Match.match_hand(hand, calls, [defn], tile_behavior) do defn else nil end
+      defn -> defn
+    end
+    result
+  end
+  def assert_winning_hand(rules_ref, match_definition_name, hand, calls \\ [], tile_aliases \\ %{}) do
+    assert match_hand(rules_ref, match_definition_name, hand, calls, tile_aliases) != nil, "Not a winning hand: #{to_string(hand)} #{to_string(calls)}"
+  end
+  def refute_winning_hand(rules_ref, match_definition_name, hand, calls \\ [], tile_aliases \\ %{}) do
+    result = match_hand(rules_ref, match_definition_name, hand, calls, tile_aliases)
+    assert result == nil, "Shouldn't be a winning hand: #{to_string(hand)} #{to_string(calls)}\nMatched with: #{inspect(result)}"
+  end
+end

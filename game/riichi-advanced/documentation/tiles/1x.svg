@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="32" version="1.1" viewBox="4 0 64 100" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(0 .076687 .076687 0 21.626 0)"><path class="tile-back" d="m1220-234h-1136c-30 0-36 17-36 37v765c0 30 16 36 36 36h1135c30 0 37-15 37-35v-767c0-30-16-36-36-36z" fill="#f8a006"/><path class="outline" d="m84-282c-55 0-84 35-84 85v765c0 55 34 84 84 84h1135c55 0 85-35 85-85v-765c0-55-34-84-84-84zm1136 48c20 0 36 6 36 36v767c0 20-7 35-37 35h-1135c-20 0-36-6-36-36v-765c0-20 6-37 36-37h1125z"/></g></svg>

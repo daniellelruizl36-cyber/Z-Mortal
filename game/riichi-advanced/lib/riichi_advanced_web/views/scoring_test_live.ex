@@ -1,0 +1,711 @@
+defmodule RiichiAdvancedWeb.ScoringTestLive do
+  alias RiichiAdvanced.Constants
+  alias RiichiAdvanced.GameState
+  alias RiichiAdvanced.GameState.Actions
+  alias RiichiAdvanced.GameState.Game
+  alias RiichiAdvanced.GameState.Kyoku
+  alias RiichiAdvanced.GameState.Player
+  alias RiichiAdvanced.GameState.Rules
+  alias RiichiAdvanced.GameState.Scoring
+  alias RiichiAdvanced.ModLoader
+  alias RiichiAdvanced.RoomState
+  alias RiichiAdvanced.Utils
+  use RiichiAdvancedWeb, :live_view
+  import RiichiAdvancedWeb.Translations
+
+  def mount(params, session, socket) do
+    socket = socket
+    |> assign(:session_id, session["session_id"])
+    |> assign(:messages, [])
+    |> assign(:messages_state, nil)
+    |> assign(:nickname, Map.get(params, "nickname", ""))
+    |> assign(:lang, Map.get(params, "lang", "en"))
+    |> assign(:config, ModLoader.default_config())
+    |> assign(:result, "")
+    |> assign(:loading, false)
+    |> assign(:seat, :east)
+    |> assign(:state, %Game{
+      winners: %{east: %{}},
+      winner_seats: [:east],
+      winner_index: 0,
+      timer: -1,
+      visible_screen: nil,
+      players: Map.new([:east, :south, :west, :north], fn seat -> {seat, %Player{}} end),
+      delta_scores: %{},
+      delta_scores_reason: nil,
+      available_seats: [:east, :south, :west, :north],
+      txns: [],
+      kyoku: 0,
+      next_dealer: nil,
+      rules_text: %{},
+      rules_text_order: [],
+      game_active: true,
+      turn: :east,
+      actions: [],
+      wall: [],
+      wall_index: 0,
+      interruptible_actions: %{},
+      marking: Map.new([:east, :south, :west, :north], fn seat -> {seat, %{}} end),
+      mutex: nil,
+      smt_solver: nil,
+    })
+    |> assign(:room_state, %{
+      scoring_test: true,
+      ruleset: "riichi",
+      mods: %{},
+      categories: [],
+      room_code: "",
+      rules_pid: nil,
+    })
+    |> assign(:ruleset, nil)
+    |> assign(:ruleset_json, nil)
+    |> assign(:yaku, [])
+    |> assign(:yaku_list_names, [])
+    |> assign(:yaku_lists, [])
+    |> assign(:extra_yaku_lists, [])
+    |> assign(:minipoint_name, "Fu")
+    |> assign(:minipoints, 0)
+    |> assign(:tiles, [])
+    |> assign(:hand, [])
+    |> assign(:hand_length, 13) # excludes winning tile
+    |> assign(:calls, [])
+    |> assign(:call_selection_ixs, [])
+    |> assign(:call_buttons, %{})
+    |> assign(:selected_call_button, nil)
+    |> assign(:rules_ref, nil)
+    |> assign(:ruleset_json, "{}")
+    |> assign(:hand_str, "")
+    # |> assign(:hand, [:"4m", :"2m", :"3m", :"4p", :"4p", :"4p", :"5p", :"6p", :"7p", :"3s", :"4s", :"2s", :"2s", :"2s"])
+
+    if connected?(socket) do
+      uuid = Ecto.UUID.generate()
+      socket = assign(socket, :uuid, uuid)
+      {:ok, _pid} = Mutex.start_link(name: Utils.via_registry("mutex", "scoringtest", uuid))
+      {:ok, _pid} = ExSMT.Solver.start_link(name: Utils.via_registry("smt_solver", "scoringtest", uuid), room_code: uuid, ruleset: "scoringtest")
+      [{mutex, _}] = Utils.registry_lookup("mutex", "scoringtest", uuid)
+      [{smt_solver, _}] = Utils.registry_lookup("smt_solver", "scoringtest", uuid)
+      socket = assign(socket, :room_state, %{ socket.assigns.room_state |
+        ruleset: "riichi",
+        room_code: uuid,
+      })
+      socket = assign(socket, :state, %{ socket.assigns.state | mutex: mutex, smt_solver: smt_solver })
+      messages_init = RiichiAdvanced.MessagesState.link_player_socket(socket.root_pid, socket.assigns.session_id)
+      socket = if Map.has_key?(messages_init, :messages_state) do
+        socket = assign(socket, :messages_state, messages_init.messages_state)
+        # subscribe to message updates
+        Phoenix.PubSub.subscribe(RiichiAdvanced.PubSub, "messages:" <> socket.assigns.session_id)
+        GenServer.cast(messages_init.messages_state, :poll_messages)
+        socket
+      else socket end
+      {:ok, socket}
+    else
+      {:ok, socket}
+    end
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div id="container" phx-hook="ClickListener">
+      <input id="tile-numbers-checkbox" type="checkbox" class="tile-numbers-checkbox" phx-update="ignore">
+      <label for="tile-numbers-checkbox" class="game-bottom-element">123</label>
+      <div class="scoringtest-container">
+        <input id="show-yaku" name="scoringtest-header" type="radio" phx-update="ignore">
+        <input id="show-mods" name="scoringtest-header" type="radio" phx-update="ignore">
+        <input id="show-config" name="scoringtest-header" type="radio" phx-update="ignore">
+        <input id="show-none" name="scoringtest-header" type="radio" phx-update="ignore" phx-click="save_mods">
+        <header>
+          <div><%= t(@lang, "Ruleset") %></div>
+          <form>
+            <select name="ruleset" class="ruleset-dropdown" phx-change="switch_ruleset">
+              <%= for {ruleset, name, _desc} <- Constants.available_rulesets(), ruleset != "custom" do %>
+                <%= if ruleset == @ruleset do %>
+                  <option value={ruleset} selected><%= name %></option>
+                <% else %>
+                  <option value={ruleset}><%= name %></option>
+                <% end %>
+              <% end %>
+            </select>
+          </form>
+          <label for="show-yaku" class="shuffle-seats"><%= t(@lang, "Yaku") %></label>
+          <label for="show-mods" class="shuffle-seats"><%= t(@lang, "Mods") %></label>
+          <label for="show-config" class="shuffle-seats"><%= t(@lang, "Config") %></label>
+          <label for="show-none" class="shuffle-seats"><%= t(@lang, "None") %></label>
+        </header>
+        <div class="hand-outer-container">
+          <.live_component module={RiichiAdvancedWeb.HandSelectionComponent}
+            id="scoringtest-hand"
+            lang={@lang}
+            ruleset={@ruleset}
+            hand={@hand}
+            hand_length={@hand_length}
+            calls={@calls}
+            call_selection_ixs={@call_selection_ixs}
+            call_buttons={@call_buttons}
+            selected_call_button={@selected_call_button}
+            reindex_hand={&send(self(), {:reindex_hand, &1, &2})}
+            tiles={@tiles} />
+        </div>
+        <div class="yaku-outer-container">
+          <.live_component module={RiichiAdvancedWeb.YakuSelectionComponent}
+            id="scoringtest-yaku"
+            lang={@lang}
+            ruleset={@ruleset}
+            yaku={@yaku}
+            yaku_list_names={@yaku_list_names}
+            minipoints={@minipoints}
+            minipoint_name={@minipoint_name} />
+        </div>
+        <div class="mods-container">
+          <.live_component module={RiichiAdvancedWeb.ModSelectionComponent}
+            id="scoringtest-mods"
+            lang={@lang}
+            ruleset={@ruleset}
+            mods={@room_state.mods}
+            categories={@room_state.categories} />
+        </div>
+        <div class="config-container">
+          <textarea name="config" phx-blur="save_config"><%= @config %></textarea>
+        </div>
+        <form phx-submit="submit_hand" class="scoring-test-bottom-buttons">
+          <input type="text" name="hand_str" value={@hand_str}>
+          <button name="load" type="submit" class="shrink"><%= t(@lang, "Load") %></button>
+          <button name="clear" phx-cancellable-click="clear_hand" class="shrink"><%= t(@lang, "Clear") %></button>
+          <%= if @loading do %>
+            <button><%= t(@lang, "Scoring...") %></button>
+          <% else %>
+            <button name="ron" type="submit"><%= t(@lang, "Ron") %></button>
+            <button name="tsumo" type="submit"><%= t(@lang, "Tsumo") %></button>
+          <% end %>
+        </form>
+        <.live_component module={RiichiAdvancedWeb.WinWindowComponent}
+          id="win-window"
+          game_state={@state}
+          seat={@seat}
+          lang={@lang}
+          winner={Map.get(@state.winners, Enum.at(@state.winner_seats, @state.winner_index), nil)}
+          timer={@state.timer}
+          visible_screen={@state.visible_screen}
+          />
+        <.live_component module={RiichiAdvancedWeb.ScoreWindowComponent}
+          id="score-window"
+          seat={@seat}
+          lang={@lang}
+          players={@state.players}
+          winners={@state.winners}
+          delta_scores={@state.delta_scores}
+          delta_scores_reason={@state.delta_scores_reason}
+          timer={@state.timer}
+          visible_screen={@state.visible_screen}
+          available_seats={@state.available_seats}
+          txns={@state.txns}
+          kyoku={@state.kyoku}
+          next_dealer={@state.next_dealer}
+          rules_ref={@rules_ref}
+          />
+        <.live_component module={RiichiAdvancedWeb.RulesPopoverComponent} id="rules-popover" rules_text={@state.rules_text} rules_text_order={@state.rules_text_order} lang={@lang} />
+      </div>
+      <div class="top-right-container">
+        <.live_component module={RiichiAdvancedWeb.MenuButtonsComponent} id="menu-buttons" lang={@lang} />
+      </div>
+      <.live_component module={RiichiAdvancedWeb.MessagesComponent} id="messages" messages={@messages} messages_state={@messages_state} lang={@lang} />
+      <div class="ruleset">
+        <div class="ruleset-text"><%= t(@lang, "Ruleset:") %></div>
+        <textarea readonly><%= @ruleset_json %></textarea>
+      </div>
+    </div>
+    """
+  end
+
+  def get_selected_yaku(yaku_assigns) do
+    yaku_assigns
+    |> Enum.filter(& &1.selected)
+    |> Enum.group_by(& &1.list_name)
+    |> Enum.flat_map(fn {_list_name, yaku} -> Enum.map(yaku, &{&1.name, [&1.value, &1.value_name]}) end)
+  end
+  
+  def switch_to_ruleset(socket, ruleset) when ruleset != socket.assigns.ruleset do
+    # mock room state
+    socket = assign(socket, :room_state, %{ socket.assigns.room_state |
+      ruleset: ruleset,
+      room_code: socket.assigns.uuid,
+    } |> RoomState.start_update_rules_task())
+    socket
+  end
+  def switch_to_ruleset(socket, _ruleset), do: socket
+
+  def retrieve_yaku_lists(socket) do
+    rules_ref = socket.assigns.rules_ref
+    score_rules = Rules.get(rules_ref, "score_calculation", %{})
+    point_names = %{
+      "yaku_lists" => Map.get(score_rules, "point_name", ""),
+      "extra_yaku_lists" => Map.get(score_rules, "point_name", ""),
+    }
+    prev_selections = socket.assigns.yaku
+    |> Enum.filter(& &1.selected == true)
+    |> MapSet.new(& &1.name)
+    parse_yaku = fn list_name ->
+      Rules.get(rules_ref, list_name, [])
+      |> Enum.map(fn yaku = %{"display_name" => name, "value" => value} -> %{
+        name: name,
+        desc: Map.get(yaku, "desc", ""),
+        value: if is_list(value) do Enum.at(value, 0) else value end,
+        list_name: list_name,
+        value_name: Map.get(point_names, list_name, if is_list(value) do Enum.at(value, 1) else "" end),
+        selected: MapSet.member?(prev_selections, name),
+        index: 0,
+      } end)
+    end
+    yaku_lists = Map.get(score_rules, "yaku_lists", [])
+    extra_yaku_lists = Map.get(score_rules, "extra_yaku_lists", [])
+    yaku_list_names = yaku_lists ++ extra_yaku_lists
+
+    socket = socket
+    |> assign(:yaku_lists, yaku_lists)
+    |> assign(:extra_yaku_lists, extra_yaku_lists)
+    |> assign(:yaku_list_names, yaku_list_names)
+    |> assign(:yaku, 
+      Enum.flat_map(yaku_list_names, parse_yaku)
+      |> Enum.uniq()
+      |> Enum.with_index()
+      |> Enum.map(fn {yaku, i} -> %{yaku | index: i} end)
+    ) 
+    |> assign(:minipoint_name, Map.get(score_rules, "minipoint_name", "Fu"))
+    socket
+  end
+
+  def score_hand(state, [], [], _is_ron?, _selected_yaku, _minipoints), do: state
+  def score_hand(state, hand, calls, is_ron?, selected_yaku, minipoints) do
+    wall = Enum.map(Rules.get(state.rules_ref, "wall", []), &Utils.to_tile(&1))
+    dead_wall_length = Rules.get(state.rules_ref, "initial_dead_wall_length", 0)
+    {wall, dead_wall} = if dead_wall_length > 0 do
+      Enum.split(wall, -dead_wall_length)
+    else {wall, []} end
+    state = %{ state |
+      wall: wall,
+      dead_wall: dead_wall,
+      log_state: %{log: []},
+      timer: -1,
+      round_result: nil,
+      winners: %{},
+      winner_seats: [],
+      winner_index: 0,
+      delta_scores: %{},
+      delta_scores_reason: nil,
+      next_dealer: nil,
+      tags: %{},
+      txns: [],
+    }
+    initial_score = Rules.get(state.rules_ref, "initial_score", 0)
+    tile_freqs = Enum.frequencies(state.wall ++ state.dead_wall)
+    all_attrs = Rules.get(state.rules_ref, :all_attrs, [])
+    state = GameState.update_all_players(state, fn seat, player -> %Player{
+      nickname: Atom.to_string(seat) |> String.capitalize(),
+      score: initial_score,
+      start_score: initial_score,
+      tile_behavior: %{ player.tile_behavior | tile_freqs: tile_freqs, attrs: all_attrs }
+    } end)
+    {winning_tile, hand} = List.pop_at(hand, -1)
+    state = if is_ron? do
+      state
+      |> GameState.update_player(:east, &%{ &1 | hand: hand, calls: calls })
+      |> GameState.update_player(:west, &%{ &1 | discards: [winning_tile] })
+      |> Actions.register_discard(:west, winning_tile, true, true)
+    else
+      state
+      |> Actions.register_discard(:west, :"1m", true, true) # invalidate tenhou
+      |> GameState.update_player(:east, &%{ &1 | hand: hand, calls: calls, draw: [winning_tile] })
+    end
+    win_source = if is_ron? do :discard else :draw end
+    scoring_key = case Rules.get(state.rules_ref, "scoring_logic", %{}) do
+      %{"ron" => _} -> if is_ron? do "ron" else "tsumo" end
+      %{"win" => _} -> "win"
+      _ -> nil
+    end
+    # add manually selected fu
+    state = if minipoints > 0 do update_in(state.players.east.counters, &Map.put(&1, "fu", minipoints)) else state end
+    # score using this fu
+    state = Kyoku.calculate_winner_details_v2(state, :east, win_source, scoring_key)
+    # add manually selected yaku
+    state = update_in(state.winners.east.yaku, & &1 ++ selected_yaku)
+    # calculate delta_scores
+    winner = state.winners.east
+    state = Actions.trigger_event(state, "after_win", winner)
+    {state, delta_scores, delta_scores_reason} = Scoring.adjudicate_win_scoring(state)
+    state
+    |> Map.put(:delta_scores, delta_scores)
+    |> Map.put(:delta_scores_reason, delta_scores_reason)
+    |> Map.put(:visible_screen, :winner)
+  end
+
+  # how many hand tiles should a length n call represent?
+  def call_repr_size(1), do: 0
+  def call_repr_size(2), do: 2
+  def call_repr_size(_), do: 3
+
+  def handle_event("back", _assigns, socket) do
+    socket = push_navigate(socket, to: ~p"/?nickname=#{socket.assigns.nickname}&lang=#{socket.assigns.lang}&ruleset=#{socket.assigns.ruleset}")
+    {:noreply, socket}
+  end
+
+  def handle_event("double_clicked", _assigns, socket), do: {:noreply, socket}
+  def handle_event("right_clicked", _assigns, socket), do: {:noreply, socket}
+  def handle_event("change_language", %{"lang" => lang}, socket), do: {:noreply, assign(socket, :lang, lang)}
+  def handle_event("switch_ruleset", %{"ruleset" => ruleset}, socket), do: {:noreply, push_patch(socket, to: ~p"/scoringtest?ruleset=#{ruleset}")}
+  def handle_event("save_config", %{"value" => value}, socket), do: {:noreply, socket |> assign(:config, value) |> assign(:room_state, RoomState.start_update_rules_task(socket.assigns.room_state))}
+
+  # reuse RoomState's functions for mod selection stuff
+  # ideally these functions would be in mod_selection_component.ex,
+  # but that would require passing in a lot of callbacks in order to update shared room state
+  # not sure if there is a cleaner way
+
+  def handle_event("toggle_mod", %{"mod" => mod, "enabled" => enabled}, socket) do
+    enabled = enabled == "true"
+    socket = assign(socket, :room_state, RoomState.toggle_mod(socket.assigns.room_state, mod, not enabled))
+    socket = assign(socket, :room_state, RoomState.start_update_rules_task(socket.assigns.room_state))
+    {:noreply, socket}
+  end
+
+  def handle_event("change_mod_config", assigns, socket) do
+    %{"mod" => mod, "name" => name} = assigns
+    ix = String.to_integer(assigns[name])
+    socket = assign(socket, :room_state, RoomState.change_mod_config(socket.assigns.room_state, mod, name, ix))
+    socket = assign(socket, :room_state, RoomState.start_update_rules_task(socket.assigns.room_state))
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_category", %{"category" => category}, socket) do
+    socket = assign(socket, :room_state, RoomState.toggle_category(socket.assigns.room_state, category))
+    socket = assign(socket, :room_state, RoomState.start_update_rules_task(socket.assigns.room_state))
+    {:noreply, socket}
+  end
+
+  def handle_event("reset_mods_to_default", _assigns, socket) do
+    socket = assign(socket, :room_state, RoomState.reset_mods_to_default(socket.assigns.room_state))
+    socket = assign(socket, :room_state, RoomState.start_update_rules_task(socket.assigns.room_state))
+    {:noreply, socket}
+  end
+
+  def handle_event("randomize_mods", _assigns, socket) do
+    socket = assign(socket, :room_state, RoomState.randomize_mods(socket.assigns.room_state))
+    socket = assign(socket, :room_state, RoomState.start_update_rules_task(socket.assigns.room_state))
+    {:noreply, socket}
+  end
+
+  # for hand selection component
+  def handle_event("add_hand_tile", %{"tile" => serialized_tile}, socket) do
+    [tile | attrs] = String.split(serialized_tile, "#")
+    tile = Utils.construct_tile(tile, attrs)
+    hand = Enum.take(socket.assigns.hand ++ [tile], 1 + socket.assigns.hand_length)
+    hand_str = if length(hand) > socket.assigns.hand_length do
+      Utils.serialize_hand(Enum.drop(hand, -1), socket.assigns.calls, Enum.take(hand, -1))
+    else Utils.serialize_hand(hand, socket.assigns.calls) end
+    socket = socket
+    |> assign(:hand, hand)
+    |> assign(:hand_str, hand_str)
+    {:noreply, socket}
+  end
+  def handle_event("remove_hand_tile", %{"index" => index}, socket) do
+    {ix, _} = Integer.parse(index)
+    hand = List.delete_at(socket.assigns.hand, ix)
+    hand_str = Utils.serialize_hand(hand, socket.assigns.calls)
+    socket = socket
+    |> assign(:hand, hand)
+    |> assign(:hand_str, hand_str)
+    {:noreply, socket}
+  end
+  def handle_event("include_hand_tile", %{"index" => index}, socket) when socket.assigns.selected_call_button != nil do
+    {ix, _} = Integer.parse(index)
+    new_selections = [ix | socket.assigns.call_selection_ixs]
+    button = socket.assigns.call_buttons[socket.assigns.selected_call_button]
+    call_length = 1 + length(Map.get(button, "call", [nil, nil, nil]) |> Enum.at(0))
+    if length(new_selections) == call_length do
+      call_tiles = Enum.map(new_selections, &Enum.at(socket.assigns.hand, &1))
+      [called_tile | call_choice] = Enum.map(call_tiles, &Utils.to_tile/1)
+      style = Map.get(button, "call_style", %{})
+      style = Map.get(style, "kamicha", Map.get(style, "self", nil))
+      new_call_tiles = if style != nil do Utils.style_call(style, call_choice, called_tile) else [called_tile | call_choice] end
+      new_call_tiles = if Enum.all?(new_call_tiles, &Utils.has_attr?(&1, "facedown")) do
+        [called_tile | call_choice]
+      else new_call_tiles end
+      new_call = {socket.assigns.selected_call_button, new_call_tiles}
+      hand_length = socket.assigns.hand_length - call_repr_size(call_length)
+      hand = socket.assigns.hand -- call_tiles
+      calls = [new_call | socket.assigns.calls]
+      hand_str = if length(hand) > hand_length do
+        Utils.serialize_hand(Enum.drop(hand, -1), calls, Enum.take(hand, -1))
+      else Utils.serialize_hand(hand, calls) end
+      socket = socket
+      |> assign(:hand, hand)
+      |> assign(:calls, calls)
+      |> assign(:hand_str, hand_str)
+      |> assign(:selected_call_button, nil)
+      |> assign(:call_selection_ixs, [])
+      |> assign(:hand_length, hand_length)
+      {:noreply, socket}
+    else
+      socket = assign(socket, :call_selection_ixs, new_selections)
+      {:noreply, socket}
+    end
+  end
+  def handle_event("include_hand_tile", _assigns, socket), do: {:noreply, socket}
+  def handle_event("exclude_hand_tile", %{"index" => index}, socket) do
+    {ix, _} = Integer.parse(index)
+    socket = assign(socket, :call_selection_ixs, List.delete(socket.assigns.call_selection_ixs, ix))
+    {:noreply, socket}
+  end
+  def handle_event("select_call_button", %{"name" => name}, socket) do
+    socket = assign(socket, :selected_call_button, name)
+    {:noreply, socket}
+  end
+  def handle_event("deselect_call_button", _assigns, socket) do
+    socket = assign(socket, :selected_call_button, nil)
+    socket = assign(socket, :call_selection_ixs, [])
+    {:noreply, socket}
+  end
+  def handle_event("remove_call", %{"index" => index}, socket) do
+    {ix, _} = Integer.parse(index)
+    {_name, call} = Enum.at(socket.assigns.calls, ix, {nil, []})
+    call = Utils.remove_attr(call, ["_sideways", "_facedown"])
+    call_size = call_repr_size(length(call))
+    call = Enum.take(call, call_size)
+    hand_length = socket.assigns.hand_length + call_size
+    hand = case Enum.split(socket.assigns.hand, hand_length) do
+      {hand, []} -> hand ++ call
+      {hand, [winning_tile | _]} -> Enum.take(hand, hand_length) ++ call ++ [winning_tile]
+    end
+    calls = List.delete_at(socket.assigns.calls, ix)
+    hand_str = if length(hand) > hand_length do
+      Utils.serialize_hand(Enum.take(hand, hand_length), calls, Enum.at(hand, hand_length))
+    else Utils.serialize_hand(hand, calls) end
+    socket = socket
+    |> assign(:hand_length, hand_length)
+    |> assign(:hand, hand)
+    |> assign(:calls, calls)
+    |> assign(:hand_str, hand_str)
+    {:noreply, socket}
+  end
+
+  # for yaku_selection_component
+  def handle_event("toggle_yaku", %{"index" => index, "selected" => selected}, socket) do
+    selected = selected == "true"
+    case Integer.parse(index) do
+      {ix, _rest} -> 
+        socket = assign(socket, :yaku, List.update_at(socket.assigns.yaku, ix, &Map.put(&1, :selected, not selected)))
+        {:noreply, socket}
+      :error -> {:noreply, socket}
+    end
+  end
+  def handle_event("change_yaku_value", %{"index" => index, "yaku-value" => value}, socket) do
+    with {ix, _rest} <- Integer.parse(index),
+         {value, _rest} <- Integer.parse(value) do {ix, value} end
+    |> case do
+      {ix, value} ->
+        socket = assign(socket, :yaku, List.update_at(socket.assigns.yaku, ix, &Map.put(&1, :value, value)))
+        {:noreply, socket}
+      :error -> {:noreply, socket}
+    end
+  end
+  def handle_event("clear_yaku", _assigns, socket) do
+    yaku = socket.assigns.yaku
+    socket = assign(socket, :yaku, Enum.map(yaku, &Map.put(&1, :selected, false)))
+    {:noreply, socket}
+  end
+  def handle_event("change_minipoints_value", %{"value" => minipoints}, socket) do
+    case Integer.parse(minipoints) do
+      {minipoints, _rest} -> {:noreply, assign(socket, :minipoints, minipoints)}
+      :error -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("ready_for_next_round", _assigns, socket) do
+    socket = if socket.assigns.state.visible_screen == :winner do
+      assign(socket, :state, %{socket.assigns.state | visible_screen: :scores})
+    else
+      assign(socket, :state, %{socket.assigns.state | visible_screen: nil})
+    end
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_hand", _assigns, socket) do
+    socket = assign(socket, :hand, [])
+    {:noreply, socket}
+  end
+  def handle_event("submit_hand", assigns, socket) do
+    # load the hand from hand_str if it differs
+    hand_str = Map.get(assigns, "hand_str")
+    socket = if hand_str != socket.assigns.hand_str do
+      {hand, calls, winning_tile} = Utils.deserialize_hand(hand_str, socket.assigns.rules_ref)
+      hand_length = min(17, Rules.get(socket.assigns.rules_ref, "starting_tiles", 13))
+      hand_length = hand_length - Enum.sum(Enum.map(calls, &call_repr_size(length(elem(&1, 1)))))
+      hand = Enum.take(hand, hand_length) ++ if winning_tile != nil do [winning_tile] else [] end
+      socket
+      |> assign(:hand, hand)
+      |> assign(:calls, calls)
+      |> assign(:selected_call_button, nil)
+      |> assign(:call_selection_ixs, [])
+      |> assign(:hand_length, hand_length)
+      |> assign(:hand_str, hand_str)
+    else socket end
+    cond do
+      Map.has_key?(assigns, "ron") or Map.has_key?(assigns, "tsumo") ->
+        # silent 4MB limit
+        if byte_size(socket.assigns.config) <= 4 * 1024 * 1024 do
+          state = socket.assigns.state
+          |> Map.put(:ruleset, socket.assigns.ruleset)
+          |> Map.put(:config, socket.assigns.config)
+          |> Map.put(:room_code, "scoringtest_" <> String.slice(socket.assigns.session_id, 0..7))
+          |> Map.put(:rules_ref, socket.assigns.rules_ref)
+          |> Map.put(:messages_states, %{east: [{socket.assigns.session_id, socket.assigns.messages_state}]})
+          is_ron? = Map.has_key?(assigns, "ron")    
+          hand = Enum.map(socket.assigns.hand, &Utils.to_tile(&1))
+          calls = socket.assigns.calls
+          selected_yaku = get_selected_yaku(socket.assigns.yaku)
+          minipoints = socket.assigns.minipoints
+          socket = socket
+          |> start_async(:put_state, fn -> score_hand(state, hand, calls, is_ron?, selected_yaku, minipoints) end)
+          |> assign(:loading, true)
+          {:noreply, socket}
+        else
+          {:noreply, socket}
+        end
+      true ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event(_event, _assigns, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_async(:put_state, {:ok, state}, socket) do
+    socket = socket
+    |> assign(:state, state)
+    |> assign(:loading, false)
+    {:noreply, socket}
+  end
+
+  def handle_async(_id, _result, socket) do
+    # IO.inspect({id, result}, label: "handle_async")
+    {:noreply, socket}
+  end
+
+  # :"ETS-TRANSFER" is sent when we inherit a new rules_ref
+  def handle_info({:"ETS-TRANSFER", rules_ref, _from_pid, _extra}, socket) do
+    # make a clone after applying config
+    ruleset = Rules.get(rules_ref, :ruleset, nil)
+    # check if it's a different ruleset
+    # reset mods and other state if so
+    socket = if ruleset != socket.assigns.ruleset do
+      IO.puts("Switching ruleset from #{socket.assigns.ruleset} to #{ruleset}")
+      socket = socket
+      |> assign(:ruleset, ruleset)
+      |> assign(:switching_ruleset, true)
+      # get mod list
+      default_mods = Rules.get(rules_ref, "default_mods", [])
+      {mods, categories} = Rules.parse_available_mods(Rules.get(rules_ref, "available_mods", []), default_mods)
+      # mock room state
+      room_state = %{
+        scoring_test: true,
+        ruleset: ruleset,
+        mods: mods,
+        categories: categories,
+        room_code: socket.assigns.uuid,
+        rules_ref: rules_ref,
+        rules_pid: nil,
+      }
+      socket = assign(socket, :room_state, RoomState.start_update_rules_task(room_state))
+      socket
+    else
+      socket = if socket.assigns.switching_ruleset do
+        hand_length = min(17, Rules.get(rules_ref, "starting_tiles", 13))
+        socket
+        |> assign(:hand_length, hand_length)
+        |> assign(:hand, socket.assigns.hand |> Enum.take(hand_length + 1))
+        |> assign(:calls, [])
+        |> assign(:call_selection_ixs, [])
+        |> assign(:call_buttons, %{})
+        |> assign(:selected_call_button, nil)
+        |> assign(:switching_ruleset, false)
+      else socket end
+      ruleset_json = Rules.get(rules_ref, :ruleset_json, nil)
+      |> JQ.query_string_with_string!(ModLoader.convert_to_jq(socket.assigns.config))
+      {:ok, rules_ref} = Rules.load_rules(ruleset_json, ruleset)
+
+      # IO.puts("Dropping old rules_ref (length #{String.length(Rules.get(socket.assigns.rules_ref, :ruleset_json, "{}"))})")
+      if socket.assigns.rules_ref != nil do :ets.delete(socket.assigns.rules_ref) end
+      socket = assign(socket, :rules_ref, rules_ref)
+      # IO.puts("Adding new rules_ref (length #{String.length(Rules.get(socket.assigns.rules_ref, :ruleset_json, "{}"))})")
+
+      wall = Rules.get(rules_ref, "wall", [])
+      socket = assign(socket, :tiles, Utils.sort_tiles(Enum.uniq(Enum.map(wall, &Utils.to_tile/1))))
+      call_buttons = Rules.get(rules_ref, "buttons", [])
+      |> Enum.filter(fn {_name, button} -> Map.has_key?(button, "call") end)
+      call_button_display_names = call_buttons
+      |> Enum.map(fn {_name, button} -> Map.get(button, "display_name", "") end)
+      |> Enum.frequencies()
+      call_buttons = call_buttons
+      |> Map.new(fn {name, button} ->
+        display_name = Map.get(button, "display_name", "")
+        if call_button_display_names[display_name] > 1 do
+          {name, Map.put(button, "disambiguate", name)}
+        else {name, button} end
+      end)
+      socket = assign(socket, :call_buttons, call_buttons)
+
+      socket = retrieve_yaku_lists(socket)
+
+      state = socket.assigns.state
+      |> Map.put(:rules_ref, rules_ref)
+      |> Map.put(:rules_text, %{})
+      |> Map.put(:rules_text_order, [])
+      |> Map.put(:players, Map.new([:east, :south, :west, :north], fn seat -> {seat, %Player{}} end))
+      |> Actions.trigger_event("after_initialization", %{seat: :east}) # to populate rules tabs
+      |> Actions.trigger_event("after_start", %{seat: :east}) # to populate tile alliases
+      socket = assign(socket, :state, state)
+      socket = assign(socket, :rules_text, state.rules_text)
+      socket = assign(socket, :rules_text_order, state.rules_text_order)
+      socket = assign(socket, :ruleset_json, Rules.get(rules_ref, :ruleset_json, "{}"))
+      socket
+    end
+    {:noreply, socket}
+  end
+
+  def handle_info(%{topic: topic, event: "messages_updated", payload: %{"state" => state}}, socket) do
+    if topic == "messages:" <> socket.assigns.session_id do
+      socket = assign(socket, :messages, state.messages)
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:reindex_hand, from, to}, socket) do
+    hand = socket.assigns.hand
+    n = length(hand)
+    if n >= 1 do
+      # force_rerender? = from >= n # TODO not sure how to fix moving from winning tile to other side of call
+      from = min(from, n-1)
+      to = min(to, n-1)
+      {l1, [tile | r1]} = Enum.split(hand, from)
+      {l2, r2} = Enum.split(l1 ++ r1, to)
+      new_hand = l2 ++ [tile] ++ r2
+      socket = assign(socket, :hand, new_hand)
+      {:noreply, socket}
+    else {:noreply, socket} end
+  end
+
+  def handle_info(_info, socket), do: {:noreply, socket}
+
+  def handle_params(params, _uri, socket) do
+    socket = if connected?(socket) do
+      switch_to_ruleset(socket, Map.get(params, "ruleset", "riichi"))
+    else socket end
+    {:noreply, socket}
+  end
+
+  # since we call `after_start` and that might call actions like `draw`
+  # which calls `GenServer.cast` with a message like `:calculate_playable_indices`
+  # we need this to handle the message (i.e. not crash)
+  def handle_cast(_msg, state), do: {:noreply, state}
+
+end

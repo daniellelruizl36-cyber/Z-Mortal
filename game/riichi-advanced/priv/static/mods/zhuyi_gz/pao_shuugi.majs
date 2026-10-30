@@ -1,0 +1,71 @@
+# Guangzhou pao shuugi settlement, overriding lib/shuugi's execute_shuugi_payment.
+# Per-unit rates mirror shuugi/yakuman's config (tsumo_unit per player per yakuman, ron_unit on ron).
+#
+# Tsumo with a pao player P responsible for p of the winner's u yakuman units:
+#   P pays: other_chips + tsumo_unit * u + tsumo_unit * p     (10/unit for pao'd, 5/unit for the rest, plus everyone else's share of pao'd units)
+#   each other player pays: other_chips + tsumo_unit * (u - p)
+# Ron with a pao player P responsible for p of u yakuman units:
+#   discarder pays: other_chips + ron_unit * (u - p) + tsumo_unit * p
+#   P pays: tsumo_unit * p
+# where other_chips = shuugi_payment - yakuman_payment (aka/ura/ippatsu/rinshan/haitei/all star).
+
+default tsumo_unit, 5
+default ron_unit, 10
+
+on after_initialization do
+  add_rule("Shuugi", "Pao", "(Pao) On tsumo, the pao player pays 10 shuugi per pao'd yakuman unit plus 5 per other unit, and the others pay 5 per unpao'd unit. On ron, the discarder pays 10 per unpao'd unit plus 5 per pao'd unit, and each pao player pays 5 per unit they are responsible for. Aka/ura/ippatsu/rinshan/haitei shuugi are unaffected by pao.")
+end
+
+def execute_shuugi_payment do
+  set_counter_all("shuugi_payment", "shuugi_payment")
+  if anyone_status("pao") do
+    # broadcast winner-context values for payer contexts
+    gz_other = shuugi_payment - yakuman_payment
+    set_counter_all("gz_other_chips", "gz_other")
+    set_counter_all("gz_units", "points2")
+    if won_by_draw do
+      as others do
+        if status("pao") do
+          gz_pay = gz_other_chips + !tsumo_unit * gz_units + !tsumo_unit * pao_yakuman
+          shuugi -= gz_pay
+          as prev_seat do shuugi += gz_pay end
+        else
+          gz_pay = gz_other_chips + !tsumo_unit * (gz_units - pao_yakuman)
+          shuugi -= gz_pay
+          as prev_seat do shuugi += gz_pay end
+        end
+      end
+    else
+      as last_discarder do
+        gz_pay = gz_other_chips + !ron_unit * (gz_units - pao_yakuman) + !tsumo_unit * pao_yakuman
+        shuugi -= gz_pay
+        as prev_seat do shuugi += gz_pay end
+      end
+      as everyone do
+        if status("pao") do
+          gz_pay = !tsumo_unit * pao_yakuman
+          shuugi -= gz_pay
+          as prev_seat do shuugi += gz_pay end
+        end
+      end
+    end
+  else
+    cond do
+      won_by_draw ->
+        as others do
+          shuugi -= shuugi_payment
+          as prev_seat do shuugi += shuugi_payment end
+        end
+      won_by_call ->
+        as last_caller do
+          shuugi -= shuugi_payment
+        end
+        shuugi += shuugi_payment
+      true ->
+        as last_discarder do
+          shuugi -= shuugi_payment
+        end
+        shuugi += shuugi_payment
+    end
+  end
+end

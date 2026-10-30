@@ -1,0 +1,48 @@
+require "grand_cross"
+default add_gold_pei, true
+
+on after_initialization do
+  add_rule("Rules", "Grand Cross", "(Super Bingo) Grand Cross is instead worth 1 han.")
+end
+if !add_gold_pei do
+  on after_initialization do
+    add_rule("Tiles", "Gold North", "(Super Bingo) A single gold north wind is added. This tile has no special functionality except when you use it to declare a Grand Cross. In that case, you are paid 20 from each player instead of 10.")
+  end
+  replace 1, "wall", "4z", "34z"
+  on after_start do
+    set_tile_alias_all(["34z"], ["4z"])
+  end
+end
+
+apply set_append, "constants.closed_kans", ["grand_cross"]
+
+# instant payment of 10 chips, or 20 chips if gold pei included
+apply set_prepend, "buttons.grand_cross.actions" do grand_cross_payment end
+def grand_cross_payment do
+  if match(["last_call"], ~m"nojoker, 34z:1") do
+    push_message("is paid 20 shuugi from all players for declaring grand cross with a gold pei")
+    as others do
+      big_text("   -20    ")
+      shuugi -= 20
+      as prev_seat do shuugi += 20 end
+    end
+  else
+    push_message("is paid 10 shuugi from all players for declaring grand cross")
+    as others do
+      big_text("   -10    ")
+      shuugi -= 10
+      as prev_seat do shuugi += 10 end
+    end
+  end
+end
+
+define_yaku yaku, "Grand Cross", [1, "Han"], match(["calls"], ~m"grand_cross:1")
+define_yaku yaku, "Grand Cross", [1, "Han"], match(["calls"], ~m"grand_cross:2")
+define_yaku yaku, "Grand Cross", [1, "Han"], match(["calls"], ~m"grand_cross:3")
+define_yaku yaku, "Grand Cross", [1, "Han"], match(["calls"], ~m"grand_cross:4")
+
+# prevent certain yaku from scoring if grand cross exists
+define_yaku meta_yaku, "(grand cross override)", [0, "Han"], has_call_named("grand_cross"), [
+  "(grand cross override)",
+  "Tanyao", "Honitsu", "Chanta", "Honroutou"
+]

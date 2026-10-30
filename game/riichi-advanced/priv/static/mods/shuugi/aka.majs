@@ -1,0 +1,57 @@
+default closed_only, true
+
+on after_initialization do
+  if !closed_only do
+    add_rule("Shuugi", "Aka", "(Aka) Each aka (red) dora in a closed winning hand adds %{chips} shuugi to the payment.", %{chips: !chips})
+  else
+    add_rule("Shuugi", "Aka", "(Aka) Each aka (red) dora in a winning hand adds %{chips} shuugi to the payment.", %{chips: !chips})
+  end
+end
+
+on before_win do
+  aka_payment = aka * !chips
+end
+
+if !closed_only do
+  define_yaku shuugi, "Aka", ["aka_payment", "⛀"], aka_payment > 0 and @closed_hand
+else
+  define_yaku shuugi, "Aka", ["aka_payment", "⛀"], aka_payment > 0
+end
+
+def announce_shuugi_payment, append: true do
+  if aka >= 1 do
+    if won_by_draw do
+      unless !closed_only do
+        if !chips == 1 do
+          push_system_message("Everyone pays 1 chip per aka dora (shuugi)")
+        else
+          push_system_message("Everyone pays %{chips} chips per aka dora (shuugi)", %{chips: !chips})
+        end
+      else
+        if @closed_hand do
+          if !chips == 1 do
+            push_system_message("Everyone pays 1 chip per aka dora in a closed hand (shuugi)")
+          else
+            push_system_message("Everyone pays %{chips} chips per aka dora in a closed hand (shuugi)", %{chips: !chips})
+          end
+        end
+      end
+    else
+      unless !closed_only do
+        if !chips == 1 do
+          push_system_message("Discarder pays 1 chip per aka dora (shuugi)")
+        else
+          push_system_message("Discarder pays %{chips} chips per aka dora (shuugi)", %{chips: !chips})
+        end
+      else
+        if @closed_hand do
+          if !chips == 1 do
+            push_system_message("Discarder pays 1 chip per aka dora in a closed hand (shuugi)")
+          else
+            push_system_message("Discarder pays %{chips} chips per aka dora in a closed hand (shuugi)", %{chips: !chips})
+          end
+        end
+      end
+    end
+  end
+end

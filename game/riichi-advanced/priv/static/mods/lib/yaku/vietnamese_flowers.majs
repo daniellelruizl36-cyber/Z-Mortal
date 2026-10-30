@@ -1,0 +1,81 @@
+on after_initialization do
+  add_rule("Rules", "Flowers", "- Vietnamese mahjong additionally includes 4 kings %{kings}, 4 queens %{queens}, and the flower joker %{hoa} as additional flower tiles.", %{kings: ~t"1234k", queens: ~t"1234q", hoa: ~t"9j"});
+end
+
+# expand all_flowers to include 1-4k, 1-4q, 9j
+apply append, "constants.all_flowers", ["1k", "2k", "3k", "4k", "1q", "2q", "3q", "4q", "9j"]
+apply append, "constants.east_flowers", ["1k", "1q"]
+apply append, "constants.south_flowers", ["2k", "2q"]
+apply append, "constants.westt_flowers", ["3k", "3q"]
+apply append, "constants.north_flowers", ["4k", "4q"]
+
+# dealer can declare no_flower at 0-1 flowers
+apply append, "set_definitions.any_flower", ~s"1k|2k|3k|4k|1q|2q|3q|4q|9j"
+define_match any_flower, ~m"nojoker, any_flower:1"
+apply set, "buttons.start_no_flower.show_when",
+  status("initial_flowers")
+  and our_turn
+  and (not_match(["hand", "draw"], "any_flower")
+    or (seat_is("east") and not_match(["hand", "draw", "flowers"], ~m"nojoker, any_flower:2")))
+
+# but then they have to discard it immediately
+define_play_restriction not_flower, status("first_turn") and match(["hand", "draw"], "any_flower")
+apply prepend, "buttons.flower.show_when", status_missing("first_turn")
+
+# flowers can only be discarded if you're going for nfnl
+define_play_restriction flower, status_missing("nfnl_eligible") and match(["hand", "draw"], "any_flower")
+
+# flower yaku (seat flowers and seat season already defined by default_flowers mod)
+define_yaku yaku, "Seat King", [1, "Phán"], seat_is("east") and match(["flowers"], ~m"1k:1")
+define_yaku yaku, "Seat King", [1, "Phán"], seat_is("south") and match(["flowers"], ~m"2k:1")
+define_yaku yaku, "Seat King", [1, "Phán"], seat_is("west") and match(["flowers"], ~m"3k:1")
+define_yaku yaku, "Seat King", [1, "Phán"], seat_is("north") and match(["flowers"], ~m"4k:1")
+define_yaku yaku, "Seat Queen", [1, "Phán"], seat_is("east") and match(["flowers"], ~m"1q:1")
+define_yaku yaku, "Seat Queen", [1, "Phán"], seat_is("south") and match(["flowers"], ~m"2q:1")
+define_yaku yaku, "Seat Queen", [1, "Phán"], seat_is("west") and match(["flowers"], ~m"3q:1")
+define_yaku yaku, "Seat Queen", [1, "Phán"], seat_is("north") and match(["flowers"], ~m"4q:1")
+
+# flower sets
+# replace their names with Bouquet
+define_yaku yaku, "Bouquet", [1, "Mủn"], has_existing_yaku("All Flowers"), ["All Flowers"]
+define_yaku yaku, "Bouquet", [1, "Mủn"], has_existing_yaku("All Flowers"), ["All Seasons"]
+define_yaku yaku, "All Kings", [1, "Mủn"], match(["flowers"], ~m"1k:1, 2k:1, 3k:1, 4k:1"), ["Seat King"]
+define_yaku yaku, "All Queens", [1, "Mủn"], match(["flowers"], ~m"1q:1, 2q:1, 3q:1, 4q:1"), ["Seat Queen"]
+# define_yaku yaku, "Matched Royalty", [1, "Phán"], match(["flowers"], ~m"1k:1, 1q:1")
+# define_yaku yaku, "Matched Royalty", [1, "Phán"], match(["flowers"], ~m"2k:1, 2q:1")
+# define_yaku yaku, "Matched Royalty", [1, "Phán"], match(["flowers"], ~m"3k:1, 3q:1")
+# define_yaku yaku, "Matched Royalty", [1, "Phán"], match(["flowers"], ~m"4k:1, 4q:1")
+
+# add an alias says any dora tiles is any-joker
+# then make all discarded flowers dora, so they can be called for a win
+on after_start do
+  set_tile_alias_all([%{tile: "any", attrs: ["dora"]}], ["any"])
+end
+define_play_effect flower do
+  add_attr(["last_discard"], ["dora"])
+  recalculate_buttons # see if anyone wins
+end
+
+define_yaku yaku, "Win on Discarded Flower", [1, "Mủn"], won_by_discard and match(["last_discard"], "any_flower")
+
+define_button start_flower,
+  display_name: "Replace all flowers",
+  show_when: status("initial_flowers")
+    and our_turn
+    and match(["hand", "draw"], ["any_flower"]),
+  unskippable: true
+  do
+    big_text(!flower_name)
+    set_status("flower")
+    # declare all flowers at once
+    press_button("start_flower")
+    press_first_call_button("start_flower")
+    # skip no flower declarations
+    press_button("start_no_flower")
+    flower(+@all_flowers)
+    draw(1, "opposite_end")
+    recalculate_buttons
+  end
+
+# if you have declared flowers/jokers, cannot keep flowers in hand
+apply set, "buttons.flower.unskippable", status_missing("nfnl_eligible")

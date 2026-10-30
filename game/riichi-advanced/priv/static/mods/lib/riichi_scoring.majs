@@ -1,0 +1,341 @@
+define_const calls_fu, %{pon: 2}
+
+define_const winning_groups_fu, [
+  # kanchan
+  %{groups: ~s"-1 0@winning_tile 1", value: 2},
+  # penchan
+  %{groups: ~s"0@winning_tile -1@tanyao -2@terminal", value: 2},
+  %{groups: ~s"0@winning_tile 1@tanyao 2@terminal", value: 2},
+  # ryanmen
+  %{groups: ~s"0@winning_tile -1@tanyao -2@tanyao"},
+  %{groups: ~s"0@winning_tile 1@tanyao 2@tanyao"},
+  # shanpon
+  %{groups: ~s"0@tanyao 0@tanyao 0@winning_tile&ron", value: 2},
+  %{groups: ~s"0@yaochuu 0@yaochuu 0@winning_tile&ron", value: 4},
+  %{groups: ~s"0@tanyao 0@tanyao 0@winning_tile&tsumo", value: 4},
+  %{groups: ~s"0@yaochuu 0@yaochuu 0@winning_tile&tsumo", value: 8},
+  # tanki
+  %{groups: ~s"0@not_yakuhai 0@winning_tile", value: 2},
+  %{groups: ~s"0@prevalent 0@winning_tile | 0@seat 0@winning_tile | 5z 5z@winning_tile | 6z 6z@winning_tile | 7z 7z@winning_tile", value: 4}
+]
+
+define_const groups_fu, [
+  %{groups: ~s"0 1 2"},
+  %{groups: ~s"0@tanyao 0@tanyao 0@tanyao", value: 4},
+  %{groups: ~s"0@yaochuu 0@yaochuu 0@yaochuu", value: 8},
+  # pair
+  # for pinfu reasons, only non-yakuhai can be removed for 0 value
+  %{groups: ~s"0@not_yakuhai 0@not_yakuhai"},
+  %{groups: ~s"0@prevalent 0@prevalent | 0@seat 0@seat | 5z 5z | 6z 6z | 7z 7z", value: 2}
+]
+define_const always_yakuhai, ["5z", "6z", "7z"]
+
+define_const closed_tsumo_20_fu, true
+define_const open_30_fu, true
+define_const round_fu, true
+define_const chiitoitsu_ron_fu, 25
+define_const chiitoitsu_tsumo_fu, 25
+define_const double_wind_fu, 2 # only used in rules text
+on after_initialization do
+  add_rule("Rules", "Fu", "Fu (minipoints) is scored based on the composition of the hand as well as how you win.", -5)
+  add_rule("Rules", "Fu", "- Start with 20 fu.")
+  add_rule("Rules", "Fu", "- Sequences are worth 0 fu.")
+  add_rule("Rules", "Fu", "- Each triplet is worth 2 fu, 4 if terminal/honors, 4 if closed, 8 if terminal/honors and closed.")
+  add_rule("Rules", "Fu", "- Kans are the same but worth 4x that amount (so 8, 16, or 32 fu).")
+  add_rule("Rules", "Fu", "- Tsumo adds 2 fu.")
+  add_rule("Rules", "Fu", "- Ron with a closed hand adds 10 fu.")
+  add_rule("Rules", "Fu", "- Having a yakuhai pair adds 2 fu. A double wind pair (i.e. both round and seat wind) adds %{double_wind_fu} fu.", %{double_wind_fu: @double_wind_fu})
+  add_rule("Rules", "Fu", "- Having a single wait like 12₍₃₎, 1₍₂₎3, or 2₍₂₎ adds 2 fu. Only the final shape matters, so 1234 waiting for a pair of 1 or 4, counts as a single wait since it could be read as 1 234 or 123 4.")
+  if @round_fu do
+    add_rule("Rules", "Fu", "- After adding all the fu, round up to the next 10. So 32 becomes 40 fu, but 30 fu stays 30 fu.")
+  else
+    add_rule("Rules", "Fu", "- Fu is not rounded.")
+  end
+  add_rule("Rules", "Fu", "Exceptions:")
+  if @chiitoitsu_ron_fu == @chiitoitsu_tsumo_fu do
+    add_rule("Rules", "Fu", "- Chiitoitsu (7 pairs) is worth %{fu} fu flat.", %{fu: @chiitoitsu_tsumo_fu})
+  else
+    add_rule("Rules", "Fu", "- Chiitoitsu (7 pairs) is worth %{ron_fu} fu on ron and %{tsumo_fu} fu on tsumo.", %{ron_fu: @chiitoitsu_ron_fu, tsumo_fu: @chiitoitsu_tsumo_fu})
+  end
+  add_rule("Rules", "Fu", "- Kokushi musou (13 orphans) is 30 fu. (Fu does not matter for kokushi hands, but here we say it's 30 fu.)")
+  if @closed_tsumo_20_fu do
+    add_rule("Rules", "Fu", "- If you have a closed hand and won with tsumo (20+2 fu) but not scoring any more fu, it is treated as 20 fu (and awards you the 1 han yaku Pinfu).")
+  end
+  if @open_30_fu do
+    add_rule("Rules", "Fu", "- An open hand is minimum 30 fu. You still start at 20 fu, but if you end with 20 fu open, it becomes 30 fu.")
+  end
+end
+
+apply initialize, "constants.closed_hand", has_no_call_named("chii", "pon", "daiminkan", "kakan")
+def calculate_fu do
+  if fu == 0 do
+    set_counter("fu", "minipoints") do
+      # score calls
+      convert_calls(@calls_fu)
+      remove_calls(["tanyaohai"])
+      convert_calls(@calls_fu)
+      remove_calls
+
+      # now remove all closed groups
+      remove_groups(@winning_groups_fu)
+      remove_groups(@groups_fu)
+      prune(method: "tile_count", num_tiles: [1,4,7,10])
+      remove_groups(@groups_fu)
+      prune(method: "tile_count", num_tiles: [1,4,7,10])
+      remove_groups(@groups_fu)
+      prune(method: "tile_count", num_tiles: [1,4,7,10])
+      remove_groups(@groups_fu)
+      prune(method: "tile_count", num_tiles: [1,4,7,10])
+
+      # only retain configurations with 0 tiles remaining
+      retain_empty_hands
+
+      # add 1000 to pinfu hands so we prioritize pinfu later
+      add(1000, minipoints_equals(0))
+
+      # base 20
+      add(20)
+
+      # tsumo +2 (except closed pinfu tsumo)
+      add(2, won_by_draw and (not @closed_tsumo_20_fu or minipoints_at_most(999) or not @closed_hand))
+
+      # closed ron +10 and open pinfu ron +10
+      add(10, not_won_by_draw and @closed_hand)
+      add(10, @open_30_fu and not_won_by_draw and not @closed_hand and minipoints_at_least(1000))
+
+      # take max, then subtract 1000 from pinfu hands
+      take_maximum
+      add(-1000, minipoints_at_least(1000))
+
+      # round up to nearest 10
+      round_up(10, @round_fu)
+
+      # add original hand (for special hands like chiitoitsu and kokushi)
+      add_original_hand
+
+      # chiitoitsu
+      add(@chiitoitsu_tsumo_fu, not_won_by_draw and @closed_hand and minipoints_equals(0) and match(["hand", "calls", "winning_tile"], ~m"pair:7"))
+      add(@chiitoitsu_ron_fu, not(not_won_by_draw and @closed_hand) and minipoints_equals(0) and match(["hand", "calls", "winning_tile"], ~m"pair:7"))
+
+      # kokushi
+      add(40, not_won_by_draw and @closed_hand and minipoints_equals(0) and match(["hand", "calls", "winning_tile"], ["kokushi_win"]))
+      add(30, minipoints_equals(0) and match(["hand", "calls", "winning_tile"], ["kokushi_win"]))
+      take_maximum
+    end
+  end
+end
+
+def add_scoring_attrs, append: true do
+  tag_tiles("not_yakuhai", "all")
+  untag_tiles("not_yakuhai", @always_yakuhai)
+  if round_wind_is("east") or seat_is("east") do untag_tiles("not_yakuhai", "1z") end
+  if round_wind_is("south") or seat_is("south") do untag_tiles("not_yakuhai", "2z") end
+  if round_wind_is("west") or seat_is("west") do untag_tiles("not_yakuhai", "3z") end
+  if round_wind_is("north") or seat_is("north") do untag_tiles("not_yakuhai", "4z") end
+  add_attr_tagged("not_yakuhai", "_not_yakuhai")
+  # tag winning tile with some attributes
+  add_attr(["winning_tile"], ["_winning_tile"])
+  if won_by_draw do
+    add_attr(["winning_tile"], ["_tsumo"])
+  else
+    add_attr(["winning_tile"], ["_ron"])
+  end
+end
+
+on before_scoring do
+  add_scoring_attrs
+  calculate_fu
+end
+
+on before_win, prepend: true do
+  if won_by_draw do
+    make_responsible_for("others", "remaining")
+  else
+    if won_by_discard do
+      make_responsible_for("last_discarder", "all")
+    else
+      make_responsible_for("last_caller", "all")
+    end
+  end
+end
+
+# for kiriage mod to modify
+define_const mangan_4_han_fu, 40
+define_const mangan_3_han_fu, 70
+
+def calculate_base_score do
+  cond do
+    total > 0 -> noop
+    points2 > 0 ->
+      total = points2 * 8000 :: "Yakuman base"
+      modify_winner("score_name", "Yakuman")
+    points >= 13 ->
+      total = 8000 :: "Yakuman base"
+      modify_winner("score_name", "Kazoe Yakuman")
+    points >= 11 ->
+      total = 6000 :: "Sanbaiman base"
+      modify_winner("score_name", "Sanbaiman")
+    points >= 8 ->
+      total = 4000 :: "Baiman base"
+      modify_winner("score_name", "Baiman")
+    points >= 6 ->
+      total = 3000 :: "Haneman base"
+      modify_winner("score_name", "Haneman")
+    points >= 5 ->
+      total = 2000 :: "Mangan base"
+      modify_winner("score_name", "Mangan")
+    points >= 4 and minipoints >= @mangan_4_han_fu ->
+      total = minipoints :: "Fu"
+      total = 2000 :: "Mangan base"
+      modify_winner("score_name", "Mangan")
+    points >= 3 and minipoints >= @mangan_3_han_fu ->
+      total = minipoints :: "Fu"
+      total = 2000 :: "Mangan base"
+      modify_winner("score_name", "Mangan")
+    true ->
+      han_mult = 2 ** (points + 2) :: "Han mult."
+      total = minipoints :: "Fu"
+      total *= han_mult :: "Base"
+  end
+  base_score = total # save base_score for mods to use
+end
+
+def apply_ron_scoring do
+  if seat_is("east", as: "winner") do
+    total *= 6 :: "Dealer ron"
+  else
+    total *= 4 :: "Nondealer ron"
+  end
+end
+
+def apply_tsumo_scoring do
+  if seat_is("east", as: "winner") or seat_is("east") do
+    total *= 2 :: "Dealer tsumo"
+  else
+    total *= 1 :: "Nondealer tsumo"
+  end
+end
+
+define_const riichi_score_rounding, 100
+
+define_scoring ron do
+  if points2 > 0 do total = points2 :: "★" else total = points :: "Han" end
+  total = 0
+  calculate_base_score
+  apply_ron_scoring
+  if mod(total, @riichi_score_rounding) > 0 do
+    total = round_up(total, @riichi_score_rounding) :: "Round up"
+  end
+  finalize_score
+end
+
+define_scoring tsumo do
+  if points2 > 0 do total = points2 :: "★" else total = points :: "Han" end
+  total = 0
+  calculate_base_score
+  apply_tsumo_scoring
+  if mod(total, @riichi_score_rounding) > 0 do
+    total = round_up(total, @riichi_score_rounding) :: "Round up"
+  end
+  finalize_score
+end
+
+define_const honba_mult, 3
+def finalize_score do
+  # store total winnings without honba, for display
+  display_total += total
+  set_counter_all("display_total", "display_total")
+  if honba > 0 do
+    if won_by_draw(as: "winner") do
+      total += honba * @honba_value :: "Honba"
+    else
+      total += honba * @honba_mult * @honba_value :: "Honba"
+    end
+  end
+end
+
+on after_win do
+  modify_winner("score", "display_total") # before honba and riichi sticks
+  # gather riichi sticks for the first winner
+  as winners do
+    riichi_stick_payment = pot
+    if riichi_stick_payment > 0 do
+      total += riichi_stick_payment :: "Riichi bets"
+      subtract_from_pot("riichi_stick_payment") # zero out pot
+    end
+  end
+end
+
+on after_scoring, do: if points2 > 0, do: modify_winner("point_name", "★")
+
+
+
+# noten payments
+# TODO note for future sakicards implementation:
+# - if kanbara satomi is in play, the player whose wall the last dora indicator is on loses double points
+#   + special logic for doubled 1500 payments is: if shimocha is tenpai, double payment to shimocha, otherwise double payment to kamicha
+# - ikeda kana triples noten payments
+
+on before_exhaustive_draw do
+  setup_noten_payments
+end
+
+define_scoring ryuukyoku do
+  execute_noten_payments
+end
+
+def setup_noten_payments do
+  # first check tenpai, and reveal tenpai hands
+  as everyone do
+    check_tenpai
+    if status("tenpai") do reveal_hand end
+  end
+  # determine how much each player pays
+  tenpai_count = 0
+  if status("tenpai") do tenpai_count += 1 end
+  if shimocha_exists and status("tenpai", as: "shimocha") do tenpai_count += 1 end
+  if toimen_exists and status("tenpai", as: "toimen") do tenpai_count += 1 end
+  if kamicha_exists and status("tenpai", as: "kamicha") do tenpai_count += 1 end
+  n = num_players
+  cond do
+    n == 4 and tenpai_count == 1 -> noten_penalty = 1000; noten_payment = 1000
+    n == 4 and tenpai_count == 2 -> noten_penalty = 1500; noten_payment = 1500
+    n == 4 and tenpai_count == 3 -> noten_penalty = 3000; noten_payment = 1000
+    n == 3 and tenpai_count == 1 -> noten_penalty = 1000; noten_payment = 1000
+    n == 3 and tenpai_count == 2 -> noten_penalty = 2000; noten_payment = 1000
+    n == 2 and tenpai_count == 1 -> noten_penalty = 1000; noten_payment = 1000
+  end
+  set_counter_all("tenpai_count", "tenpai_count")
+  set_counter_all("noten_payment", "noten_payment")
+  set_counter_all("noten_penalty", "noten_penalty")
+end
+
+def execute_noten_payments do
+  if noten_payment == 1500 do
+    # for 2 player in yonma, it's weird
+    as everyone do
+      cond do
+        status("tenpai") and status_missing("tenpai", as: "shimocha") ->
+          as shimocha do
+            if total < noten_penalty do total = noten_payment :: "Noten payment" end
+          end
+        status("tenpai") and status_missing("tenpai", as: "kamicha") ->
+          as kamicha do
+            if total < noten_penalty do total = noten_payment :: "Noten payment" end
+          end
+      end
+    end
+  else
+    as everyone do
+      if status_missing("tenpai") do
+        as others do
+          if status("tenpai") do
+            as prev_seat do
+              if total < noten_penalty do total = noten_payment :: "Noten payment" end
+            end
+          end
+        end
+      end
+    end
+  end
+end

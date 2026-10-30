@@ -1,0 +1,248 @@
+define_global han, "Phán"
+define_global ankan_name, "Self Coong"
+define_global chankan_name, "Bắt Coong"
+define_global chii_name, "Ăn"
+define_global flower_name, "Hoa"
+define_global kan_name, "Coong"
+define_global pon_name, "Phỗng"
+define_global ron_name, "Ù"
+define_global tsumo_name, "Chỉ Mó"
+require "global_mods"
+require "base"
+require "standard_wall"
+require "framed_5z"
+require "default_auto_buttons"
+require "chii"
+require "pon"
+require "kan"
+require "ron"
+require "tsumo"
+require "head_bump"
+require "default_flowers", %{four_flowers_value: 1, matching_flower_value: 1, four_flowers_han: "Mủn"}
+require "standard_win"
+require "yaku/yakuhai", %{round_wind_name: "Prevalent Wind", value: 1}
+require "yaku/menzentsumo", %{name: "Fully Closed Hand", value: 1}
+require "yaku/chankan", %{name: "Robbing a Quad", value: 1, scoring_key: "ron"}
+require "yaku/rinshan", %{value: 1, flower_name: "Win on Replacement Tile", name: "Win on Replacement Tile"}
+require "yaku/chiitoitsu", %{name: "Seven Pairs", value: 1, han: "Mủn", kansai: true}
+require "yaku/honitsu", %{chin_name: "Full Flush", chin_value: 1, hon_name: "Half Flush", hon_value: 3, chin_han: "Mủn", hon_han: "Phán"}
+require "yaku/haitei", %{haitei_name: "Win on Last Tile", haitei_value: 1, houtei_name: "Win on Last Tile", houtei_value: 1}
+require "yaku/pinghu", %{name: "All Runs", value: 1, no_value_pair: true}
+require "yaku/toitoi", %{name: "All Sets", value: 3}
+require "yaku/honroutou", %{chin_name: "All Terminals", chin_value: 4, hon_name: "All Terminals and Honors", hon_value: 1, chin_han: "Mủn", hon_han: "Mủn"}
+require "yaku/shousangen", %{dai_name: "Big Three Dragons", dai_value: 9, shou_name: "Little Three Dragons", shou_value: 1, dai_han: "Phán", shou_han: "Mủn"}
+require "yaku/kokushi", %{name: "Thirteen Orphans", value: 13}
+require "yaku/sanankou", %{suu_name: "Four Closed Sets", suu_value: 3, suu_han: "Mủn"}
+require "yaku/suukantsu", %{name: "Four Quads", value: 4, han: "Mủn"}
+require "yaku/chuurenpoutou", %{name: "Nine Gates", value: 3, han: "Mủn"}
+require "yaku/tsuuiisou", %{name: "All Honors", value: 4, han: "Mủn"}
+require "yaku/shousuushii", %{dai_name: "Big Four Winds", dai_value: 8, shou_name: "Little Four Winds", shou_value: 4, dai_han: "Mủn", shou_han: "Mủn"}
+require "yaku/tenhou", %{chiihou_name: "Blessing of Earth", chiihou_value: 2, renhou_name: "Blessing of Man", renhou_value: 2, tenhou_name: "Blessing of Heaven", tenhou_value: 2, chiihou_han: "Mủn", tenhou_han: "Mủn", renhou_han: "Mủn"}
+require_after "yaku/vietnamese_flowers"
+require_after "yaku/vietnamese_jokers"
+require_after "vietnamese_nfnl"
+require_after "vietnamese_scoring"
+
+on after_initialization, prepend: true do
+  add_rule_tab("Rules")
+  add_rule_tab("Tiles")
+  add_rule_tab("1 Phán")
+  add_rule_tab("2 Phán")
+  add_rule_tab("3 Phán")
+  add_rule_tab("4 Phán")
+  add_rule_tab("5 Phán")
+  add_rule_tab("1 Mủn")
+  add_rule_tab("2 Mủn")
+  add_rule_tab("3 Mủn")
+  add_rule_tab("4 Mủn")
+  add_rule_tab("5 Mủn")
+  add_rule_tab("6 Mủn")
+  add_rule_tab("7 Mủn")
+  add_rule_tab("8 Mủn")
+end
+on after_initialization do
+  add_rule("Tiles", "Base Tiles", "Vietnamese Mahjong uses the following 136 tiles:", -100)
+  add_rule("Tiles", "Base Tiles", "- Four each of the 1 to 9 of Dots %{pinzu}", %{pinzu: ~t"123456789p"})
+  add_rule("Tiles", "Base Tiles", "- Four each of the 1 to 9 of Bams %{souzu}", %{souzu: ~t"123456789s"})
+  add_rule("Tiles", "Base Tiles", "- Four each of the 1 to 9 of Craks %{manzu}", %{manzu: ~t"123456789m"})
+  add_rule("Tiles", "Base Tiles", "- Four each of the four Winds (East, South, West, North) %{winds}", %{winds: ~t"1234z"})
+  add_rule("Tiles", "Base Tiles", "- Four each of the three Dragons (White, Green, Red) %{dragons}", %{dragons: ~t"067z"})
+  add_rule("Tiles", "Base Tiles", "- Four Flowers %{flowers}", %{flowers: ~t"1234f"})
+  add_rule("Tiles", "Base Tiles", "- Four Seasons %{seasons}", %{seasons: ~t"1234g"})
+  add_rule("Tiles", "Base Tiles", "- Four Kings %{kings}", %{kings: ~t"1234k"})
+  add_rule("Tiles", "Base Tiles", "- Four Queens %{queens}", %{queens: ~t"1234q"})
+  add_rule("Tiles", "Base Tiles", "- Plus 8 to 32 Joker tiles %{jokers}", %{jokers: ~t"07892456j"})
+  add_rule("Rules", "Discarding Flowers/Jokers", "A discarded flower acts as an anything-joker, but can only be claimed for a win.")
+  add_rule("Rules", "Discarding Flowers/Jokers", "A discarded joker can also only be claimed for a win, but it acts as itself, not an anything-joker.")
+  add_rule("Rules", "Discarding Flowers/Jokers", "You can discard Anything (縂) and Number (合) jokers at any time during your turn. However, other jokers cannot be discarded after the initial flower phase, unless you are going for a No Flowers No Leaves hand.")
+  add_rule("Rules", "Scoring", """
+    Upon a win, every 6 Phán is converted to 1 Mủn. If there are any Mủn, each Mủn is 32 points. Otherwise, 1/2/3/4/5 Phán is 1/2/4/8/16 points. This is your Single payment; double it to get the Double payment.
+    Afterwards, if Mủn was scored, any leftover Phán adds 6 points to the Single payment and 6 points to the Double payment (not doubled to 12).
+    In event of a win-by-discard (or by Robbing a Quad), the discarder (or caller) pays Double and the two other players pay Single.
+    In event of a win-by-draw, all three other players pay Double.
+    Exception: a 0 Phán hand (Mosquito Hand) scores both a Single and Double payment of 1.
+    """, -50)
+
+  # yaku that are mostly unique to this variant
+  add_rule("1 Phán", "Mosquito Hand", "Winning with no scoring hand patterns gives Mosquito Hand (0 Phán).")
+  add_rule("1 Phán", "Mosquito Hand", "%{example_hand}", %{example_hand: ~t"67m12567p555s22z6j 8m"})
+  add_rule("1 Phán", "Single Wait", "1 Phán if you win (by self-draw) with a hand that relied on exactly one tile to complete. Because of jokers, this tends to be rarer than in other Mahjong variants.")
+  add_rule("1 Phán", "Quad", "Each quad (Coong) of any type awards you 1 Phán each. If you have four Quads, you are instead awarded Four Quads (4 Mủn!).")
+  add_rule("3 Phán", "All Called", "3 Phán if you win on a discarded tile with four called groups, leaving a single tile in your hand waiting to complete a pair. +1 Phán if no jokers.")
+  add_rule("1 Mủn", "No Jokers Mosquito Hand", "1 Mủn if you win with a hand containing no jokers but also scores no other hand patterns besides Mosquito Hand.")
+  add_rule("1 Mủn", "No Jokers Mosquito Hand", "%{example_hand}", %{example_hand: ~t"123678m444p34s66z 5s"})
+  add_rule("1 Mủn", "Win on Discarded Flower/Joker", "1 Mủn if you win a discarded flower or joker.")
+
+  # add upgrades to existing yaku (from preapplied mods in constants.ex)
+  update_rule("1 Mủn", "Full Flush", "+1 Mủn if no jokers.")
+  update_rule("4 Mủn", "All Terminals", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("1 Mủn", "Little Three Dragons", "+1 Mủn if no jokers.")
+  update_rule("1 Mủn", "Big Three Dragons", "+1 Mủn if no jokers.")
+  update_rule("13 Phán", "Thirteen Orphans", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("3 Mủn", "Nine Gates", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("3 Mủn", "Four Closed Sets", "+1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("4 Mủn", "Four Quads", "+1 Mủn if all four quads are concealed.")
+  update_rule("3 Mủn", "Nine Gates", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("4 Mủn", "All Honors", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("4 Mủn", "Little Four Winds", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+  update_rule("8 Mủn", "Big Four Winds", "+1 Mủn if no jokers. +1 Mủn if combined with Single Wait and Fully Closed Hand.")
+
+  # put some jokers in some example hands
+  delete_rule("3 Phán", "All Sets")
+  add_rule("3 Phán", "All Sets", "You won with a hand containing 4 triplets and a pair.")
+  update_rule("3 Phán", "All Sets", "%{example_hand}", %{example_hand: ~t"888m22p6j3s2j22z 1z1Z1z 3s"})
+  update_rule("3 Phán", "All Sets", "+1 Phán if no jokers.")
+
+  # consolidate some rule tabs
+  rename_rule_tab("1 Phán", "Phán")
+  rename_rule_tab("2 Phán", "Phán")
+  rename_rule_tab("3 Phán", "Phán")
+  rename_rule_tab("9 Phán", "1 Mủn")
+  rename_rule_tab("13 Phán", "2 Mủn")
+end
+
+
+set display_name, "Vietnamese"
+set tutorial_link, "https://drive.google.com/file/d/1ETjCEPo-fVDKkcQwZ_mK3qCsop5fhagD/view"
+set initial_score, 0
+set starting_tiles, 13
+set initial_dead_wall_length, 26
+set max_rounds, 16
+set four_rows_discards, true
+set win_timer, 30
+
+set custom_style, %{
+  tile_indices: %{
+    "0j": "Any",
+    "2j": "Number",
+    "9j": "Flower",
+    "4j": "Dragon",
+    "5j": "Wind",
+    "6j": "Dot",
+    "7j": "Bamboo",
+    "8j": "Char",
+    "00j": "Any",
+    "02j": "Number",
+    "09j": "Flower",
+    "04j": "Dragon",
+    "05j": "Wind",
+    "06j": "Dot",
+    "07j": "Bamboo",
+    "08j": "Char",
+    "50j": "Any",
+    "52j": "Number",
+    "59j": "Flower",
+    "54j": "Dragon",
+    "55j": "Wind",
+    "56j": "Dot",
+    "57j": "Bamboo",
+    "58j": "Char",
+    "80j": "Any",
+    "82j": "Number",
+    "89j": "Flower",
+    "84j": "Dragon",
+    "85j": "Wind",
+    "86j": "Dot",
+    "87j": "Bamboo",
+    "88j": "Char",
+    "1k": "1K",
+    "2k": "2K",
+    "3k": "3K",
+    "4k": "4K",
+    "1q": "1Q",
+    "2q": "2Q",
+    "3q": "3Q",
+    "4q": "1Q"
+  }
+}
+
+apply set, "buttons.ankan.call_style", %{self: [0, ["1x", 1], 2, 3]}
+
+# all yaku not handled by yaku mods
+define_yaku meta_yaku, "Mosquito Hand", [0, "Phán"], has_no_yaku
+define_yaku meta_yaku, "No Jokers Mosquito Hand", [1, "Mủn"], has_no_yaku and status_missing("has_joker"), ["Mosquito Hand"]
+define_yaku yaku, "Single Wait", [1, "Phán"], won_by_draw and wait_count_at_most(1, "win")
+define_yaku yaku, "Pair Wait", [1, "Phán"], won_by_draw and wait_count_at_most(1, "win") and match(["hand", "calls"], ~m"exhaustive, mentsu:4"), ["Single Wait"]
+define_yaku yaku, "Quad", [1, "Phán"], match(["calls"], ~m"(daiminkan ankan kakan):1")
+define_yaku yaku, "Quad", [1, "Phán"], match(["calls"], ~m"(daiminkan ankan kakan):2")
+define_yaku yaku, "Quad", [1, "Phán"], match(["calls"], ~m"(daiminkan ankan kakan):3")
+define_yaku yaku, "All Called", [3, "Phán"], not_won_by_draw and match(["calls"], ~m"(chii pon daiminkan ankan kakan):4")
+
+# bonsues
+define_yaku meta_yaku, "Small No Jokers Bonus", [1, "Phán"], status_missing("has_joker") and has_existing_yaku("All Sets") and not_has_points(1, "Mủn") and not_has_points(6, "Phán")
+define_yaku meta_yaku, "No Jokers Bonus", [1, "Mủn"], status_missing("has_joker") and (has_points(1, "Mủn") or has_points(6, "Phán"))
+define_yaku meta_yaku, "Single Wait Fully Closed Bonus", [1, "Mủn"], has_existing_yaku("Fully Closed Hand") and (has_existing_yaku("Single Wait") or has_existing_yaku("Pair Wait")) and has_points(2, "Mủn"), ["Fully Closed Hand", "Single Wait", "Pair Wait"]
+
+define_yaku_precedence "Big Three Dragons", ["White Dragon", "Green Dragon", "Red Dragon"]
+define_yaku_precedence "Nine Gates", ["Full Flush"]
+define_yaku_precedence "Four Quads", ["Quad", "Four Concealed Triplets"]
+define_yaku_precedence "Little Four Winds", ["Round Wind", "Seat Wind"]
+define_yaku_precedence "Big Four Winds", ["Little Four Winds"]
+define_yaku_precedence "All Terminals and Honors", ["All Sets"]
+
+set score_calculation, %{
+  yaku_lists: ["yaku", "progressive", "meta_yaku"],
+  point_name: "Phán",
+  point2_name: "Mủn",
+  win_by_discard_name: "Ù",
+  win_by_draw_name: "Chỉ Mó",
+  win_by_discard_name: "Ù",
+  win_by_discard_name_2: "Double Ù", # there is head bump so no need for this
+  win_by_discard_name_3: "Triple Ù",
+  win_by_draw_name: "Chỉ Mó",
+  exhaustive_draw_name: "Draw"
+}
+
+# mods
+define_mod_category "Rules"
+define_mod viet_mun_bonus, name: "Mun Bonus", desc: "Adds a fixed undoubled bonus of 6 or 10 points for each mủn."
+config_mod viet_mun_bonus, name: "bonus", values: [6, 10], default: 10
+define_mod viet_quad_bonus, name: "Quad Bonus", desc: "Adds a fixed undoubled bonus of 5 or 6 points for each quad."
+config_mod viet_quad_bonus, name: "bonus", values: [5, 6], default: 6
+define_mod viet_phan_bonus, name: "Leftover Phán", desc: "Changes the undoubled amount added by extra phán, in hands scoring 1 mủn or more. It is normally 6."
+config_mod viet_phan_bonus, name: "bonus", values: [1, 2, 6], default: 6
+define_mod viet_more_jokers, name: "More Jokers", desc: "Add more sets of jokers to the wall on top of the existing 8. It is recommended to enable No Seven Pairs when playing with extra jokers."
+config_mod viet_more_jokers, name: "sets", values: [16, 24, 32]
+define_mod suufon_renda, name: "Four Winds Draw", desc: "If the first discard for all four players is the same wind tile, the round ends in an abortive draw."
+config_mod suufon_renda, name: "name", values: ["Four Winds Draw"]
+define_mod kyuushu_kyuuhai, name: "Nine Terminals Draw", desc: "If any player starts with a hand of 9 or more terminal and honor tiles, they may end the round in an abortive draw."
+config_mod kyuushu_kyuuhai, name: "name", values: ["Nine Terminals Draw"]
+
+define_mod_category "Hand Patterns"
+define_mod "yaku/viet_rob_bounce", name: "Robbing a Bounce", desc: "1 phán if someone else uses a tile you're waiting for to bounce a joker."
+define_mod "yaku/viet_no_seven_pairs", name: "No Seven Pairs", conflicts: ["yaku/viet_tsumo_seven_pairs"], desc: "Removes seven pairs as a winning hand. (Useful when playing with more than 8 jokers.)"
+define_mod "yaku/viet_tsumo_seven_pairs", name: "Self-Draw Seven Pairs", conflicts: ["yaku/viet_no_seven_pairs"], desc: "Adds the requirement that Seven Pairs is completed by self-draw. (Useful when playing with more than 8 jokers.)"
+define_mod "yaku/shanpon", name: "Double Triplet Wait", desc: "1 phán if your winning hand has two pairs waiting for either one to become a triplet."
+config_mod "yaku/shanpon", name: "value", values: [1]
+config_mod "yaku/shanpon", name: "han", values: ["Phán"]
+config_mod "yaku/shanpon", name: "name", values: ["Double Triplet Wait"]
+config_mod "yaku/shanpon", name: "list", values: ["yaku"]
+define_mod "yaku/viet_eight_flowers", name: "Eight Flowers", desc: "1 mủn if you collect any 8 flowers, on top of points normally granted by flowers."
+define_mod "yaku/viet_ten_flowers", name: "Ten Flowers", desc: "1 mủn if you collect any 10 flowers, on top of points normally granted by flowers."
+define_mod "yaku/viet_renchan", name: "Six Consecutive Wins", desc: "1 mủn on your 6th win in a row, plus 1 mủn for each additional win."
+define_mod "yaku/viet_no_renhou", name: "No Blessing of Man", desc: "Blessing of Man (win on someone's first discard before your draw) no longer gives 2 mủn."
+
+define_mod_category "Other"
+define_mod vietnamese_vi, name: "Vietnamese Yaku Names", desc: "Display Vietnamese yaku names. (e.g. All Runs -> Phình)"
+
+apply set_append, "default_mods", ["yaku/viet_tsumo_seven_pairs"]

@@ -1,0 +1,22 @@
+default chips, 1
+
+on after_initialization do
+  add_rule("Shuugi", "Rinshan", "(Rinshan) Winning off a replacement tile adds %{chips} shuugi to the payment.", %{chips: !chips})
+  add_rule("Shuugi", "Haitei", "(Haitei) Winning on the last tile of the wall adds %{chips} shuugi to the payment.", %{chips: !chips})
+end
+
+define_yaku shuugi, "Rinshan", [!chips, "⛀"], status("kan")
+define_yaku shuugi, "Haitei", [!chips, "⛀"], no_tiles_remaining and not status("kan")
+
+def announce_shuugi_payment, append: true do
+  if status("kan") do
+    push_system_message("Everyone pays %{chips} chip(s) for rinshan (shuugi)", %{chips: !chips})
+  end
+  if no_tiles_remaining and not status("kan") do
+    if won_by_draw do
+      push_system_message("Everyone pays %{chips} chip(s) for haitei (shuugi)", %{chips: !chips})
+    else
+      push_system_message("Discarder pays %{chips} chip(s) for houtei (shuugi)", %{chips: !chips})
+    end
+  end
+end

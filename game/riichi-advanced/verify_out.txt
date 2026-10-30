@@ -1,0 +1,64 @@
+default_mods count: 60
+full JSON length: 188687
+shuugi functions: ["announce_shuugi_payment", "convert_shuugi", "execute_shuugi_payment"]
+yaku_lists: nil
+after_win shuugi actions: [
+  [
+    "when",
+    [
+      [
+        %{"name" => "amount_more_than", "opts" => ["points2", 0]},
+        [true, %{"name" => "amount_at_least", "opts" => ["points", 13]}]
+      ]
+    ],
+    [
+      ["set_status", "yakuman"],
+      [
+        "ite",
+        ["won_by_draw"],
+        [
+          [
+            "set_counter",
+            "yakuman_payment",
+            "eval_expr",
+            ["+", ["yakuman_payment", 5]]
+          ]
+        ],
+        [
+          [
+            "set_counter",
+            "yakuman_payment",
+            "eval_expr",
+            ["+", ["yakuman_payment", 10]]
+          ]
+        ]
+      ],
+      [
+        "when",
+        [%{"name" => "amount_more_than", "opts" => ["points2", 0]}, false],
+        [
+          [
+            "set_counter",
+            "yakuman_payment",
+            "eval_expr",
+            ["*", ["yakuman_payment", "points2"]]
+          ]
+        ]
+      ],
+      [
+        "set_counter",
+        "shuugi_payment",
+        "eval_expr",
+        ["+", ["shuugi_payment", "yakuman_payment"]]
+      ]
+    ]
+  ],
+  [
+    "set_counter",
+    "shuugi_payment",
+    "eval_expr",
+    ["+", ["shuugi_payment", "shuugi_gain"]]
+  ],
+  ["run", "announce_shuugi_payment"],
+  ["run", "execute_shuugi_payment"]
+]

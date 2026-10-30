@@ -1,0 +1,235 @@
+on after_initialization do
+  add_rule("Rules", "Vietnamese Joker Tiles", """
+    Vietnamese Mahjong uses the following sets of 8 jokers (not shown: flower joker).
+    %{all_jokers}
+    On your turn, you may replace any of these jokers by setting them aside like a flower tile, and then drawing a replacement tile. Every joker declared this way scores some amount: see the Phán tab to see their point values. If not replaced, they act like wildcard tiles in your hand. See the Tiles tab for info on which tiles each joker may represent.
+    """, %{all_jokers: @all_jokers})
+  add_rule("Tiles", "Vietnamese Joker Tiles", """
+    Vietnamese Mahjong uses sets of 8 jokers, divided into blue and red jokers.
+    Blue jokers:
+    - %{tong} Tổng (縂): can be used as any tile (except flowers or other jokers)
+    - %{thung} Thùng (筒): can be used as any circle tile: %{pinzu}
+    - %{sooc} Soọc (索): can be used as any bamboo tile: %{souzu}
+    - %{man} Màn (萬): can be used as any character tile: %{manzu}
+    Red jokers:
+    - %{hoa} Đại Hoa (花): acts as a flower tile worth 2 Phán, not really a joker
+    - %{ho} Hỉ (喜): can be used as any wind tile: %{winds}
+    - %{nguyen} Nguyên (元): can be used as any dragon tile: %{dragons}
+    - %{hop} Hợp (合): can be used as any number tile: %{pinzu}%{souzu}%{manzu}
+    These can be declared like flower tiles, in which case they cease to act as a wildcard and instead contribute a few Phán to your hand's value. See the Phán tab to see how they score.
+    """, %{
+      pinzu: ~t"123456789p",
+      souzu: ~t"123456789s",
+      manzu: ~t"123456789m",
+      winds: ~t"1234z",
+      dragons: ~t"067z",
+      tong: ~t"0j",
+      thung: ~t"6j",
+      sooc: ~t"7j",
+      man: ~t"8j",
+      hoa: ~t"9j",
+      ho: ~t"4j",
+      nguyen: ~t"5j",
+      hop: ~t"2j"
+    }, -90)
+  add_rule("Phán", "Anything Joker (縂)", "The anything joker %{tong} can be replaced for 3 Phán if you are the East player or if you replace it at the start of the game, or 2 Phán otherwise.", %{tong: ~t"0j"})
+  add_rule("Phán", "Dot Joker (筒)", "The dot joker %{thung} can be replaced for 2 Phán if you are the South player, or 1 Phán otherwise.", %{thung: ~t"6j"})
+  add_rule("Phán", "Bamboo Joker (索)", "The bamboo joker %{sooc} can be replaced for 2 Phán if you are the West player, or 1 Phán otherwise.", %{sooc: ~t"7j"})
+  add_rule("Phán", "Character Joker (萬)", "The character joker %{man} can be replaced for 2 Phán if you are the North player, or 1 Phán otherwise.", %{man: ~t"8j"})
+  add_rule("Phán", "Flower Joker (花)", "The flower joker %{hoa} can be replaced for 2 Phán regardless of seat.", %{hoa: ~t"9j"})
+  add_rule("Phán", "Wind Joker (喜)", "The wind joker %{hi} can be replaced for 2 Phán if you are the South player, or 1 Phán otherwise.", %{ho: ~t"4j"})
+  add_rule("Phán", "Dragon Joker (元)", "The dragon joker %{nguyen} can be replaced for 2 Phán if you are the West player, or 1 Phán otherwise.", %{nguyen: ~t"5j"})
+  add_rule("Phán", "Number Joker (合)", "The number joker %{hop} can be replaced for 3 Phán if you are the North player or if you replace it at the start of the game, or 2 Phán otherwise.", %{hop: ~t"2j"})
+
+  add_rule("Rules", "Ăn", "(Vietnamese) You cannot Ăn with more than one joker tile.")
+  add_rule("Rules", "Phỗng", "(Vietnamese) You cannot Phỗng with more than one joker tile.")
+  add_rule("Rules", "Coong", "(Vietnamese) You can only Coong with four non-joker tiles.")
+end
+
+# jokers
+# 9j (flower joker) is handled by vietnamese_flowers mod
+define_const all_jokers, ["0j", "2j", "4j", "5j", "6j", "7j", "8j"]
+# the following are to establish a strata of jokers from weakest to strongest
+# this determines who wins when a simultaneous pon/daiminkan call is made
+define_const all_jokers_1, ["4j", "5j", "6j", "7j", "8j"]
+define_const all_jokers_2, ["2j"]
+define_const all_jokers_3, ["0j"]
+apply append, "wall", +@all_jokers
+define_set any_joker, ~s"0j|2j|4j|5j|6j|7j|8j"
+define_match any_joker, ~m"nojoker, any_joker:1"
+
+on after_start do
+  set_tile_alias_all(["0j"], ["any"])
+  set_tile_alias_all(["2j"], ["1m","2m","3m","4m","5m","6m","7m","8m","9m","1p","2p","3p","4p","5p","6p","7p","8p","9p","1s","2s","3s","4s","5s","6s","7s","8s","9s"])
+  set_tile_alias_all(["4j"], ["0z","6z","7z"])
+  set_tile_alias_all(["5j"], ["1z","2z","3z","4z"])
+  set_tile_alias_all(["6j"], ["1p","2p","3p","4p","5p","6p","7p","8p","9p"])
+  set_tile_alias_all(["7j"], ["1s","2s","3s","4s","5s","6s","7s","8s","9s"])
+  set_tile_alias_all(["8j"], ["1m","2m","3m","4m","5m","6m","7m","8m","9m"])
+end
+
+# cannot discard jokers after flower phase
+define_play_restriction "0j", status_missing("initial_flowers", "nfnl_eligible")
+define_play_restriction "2j", status_missing("initial_flowers", "nfnl_eligible")
+define_play_restriction "4j", status_missing("initial_flowers", "nfnl_eligible")
+define_play_restriction "5j", status_missing("initial_flowers", "nfnl_eligible")
+define_play_restriction "6j", status_missing("initial_flowers", "nfnl_eligible")
+define_play_restriction "7j", status_missing("initial_flowers", "nfnl_eligible")
+define_play_restriction "8j", status_missing("initial_flowers", "nfnl_eligible")
+
+# # funny animation. might remove it if it's annoying
+# apply set_append, "interruptible_actions", ["convert_last_discard"]
+# def make_joker_discard do
+#   if not_match(["last_discard"], ~m"0j:1") do
+#     pause(200)
+#     convert_last_discard("5z")
+#     pause(200)
+#     convert_last_discard("0j")
+#   end
+# end
+
+define_play_effect joker do
+  set_status("discarded_joker")
+end
+
+define_button start_joker,
+  display_name: "Replace joker",
+  show_when: status("initial_flowers")
+    and our_turn
+    and match(["hand", "draw"], "any_joker")
+  do
+    big_text("Joker")
+    flower(+@all_jokers)
+    set_status("has_joker")
+    draw(1, "opposite_end")
+    recalculate_buttons
+  end
+
+define_button joker,
+  display_name: "Replace joker",
+  show_when: our_turn
+    and has_draw
+    and not_just_discarded
+    and status_missing("initial_flowers", "just_called")
+    and match(["hand", "draw"], "any_joker")
+  do
+    big_text("Joker")
+    flower(+@all_jokers)
+    set_status("flower")
+    unset_status("kan")
+    if no_tiles_remaining do
+      advance_turn
+    else
+      draw(1, "opposite_end")
+    end
+  end
+
+apply prepend, "buttons.ron.actions" do
+  if match(["hand", "calls", "last_discard"], "any_joker") do
+    set_status("has_joker")
+  end
+end
+apply prepend, "buttons.chankan.actions" do
+  if match(["hand", "calls", "last_called_tile"], "any_joker") do
+    set_status("has_joker")
+  end
+end
+apply prepend, "buttons.tsumo.actions" do
+  if match(["hand", "calls", "draw"], "any_joker") do
+    set_status("has_joker")
+  end
+end
+
+on after_call do
+  if match(["last_call"], ["any_joker"]) do
+    set_status("has_joker")
+  end
+end
+
+def calculate_joker_values do
+  tong_value = 2
+  thung_value = 1
+  sooc_value = 1
+  man_value = 1
+  hoa_value = 2
+  hi_value = 1
+  nguyen_value = 1
+  hop_value = 1
+  if seat_is("east") or match(["start_jokers"], ~m"0j:1") do tong_value = 3 end
+  if seat_is("south") do thung_value = 2 end
+  if seat_is("west") do sooc_value = 2 end
+  if seat_is("north") do man_value = 2 end
+  if seat_is("south") do hi_value = 2 end
+  if seat_is("west") do nguyen_value = 2 end
+  if seat_is("north") or match(["start_jokers"], ~m"2j:1") do hop_value = 2 end
+end
+on before_win do
+  calculate_joker_values
+  multiply_counter("tong_value", "count_matches", ["jokers"], ~m"nojoker, (0j 00j 50j 80j):1")
+  multiply_counter("thung_value", "count_matches", ["jokers"], ~m"nojoker, (6j 06j 56j 86j):1")
+  multiply_counter("sooc_value", "count_matches", ["jokers"], ~m"nojoker, (7j 07j 57j 87j):1")
+  multiply_counter("man_value", "count_matches", ["jokers"], ~m"nojoker, (8j 08j 58j 88j):1")
+  multiply_counter("hoa_value", "count_matches", ["flowers"], ~m"nojoker, (9j 09j 59j 89j):1")
+  multiply_counter("hi_value", "count_matches", ["jokers"], ~m"nojoker, (5j 05j 55j 85j):1")
+  multiply_counter("nguyen_value", "count_matches", ["jokers"], ~m"nojoker, (4j 04j 54j 84j):1")
+  multiply_counter("hop_value", "count_matches", ["jokers"], ~m"nojoker, (2j 02j 52j 82j):1")
+end
+
+# TODO need to be consistent abt what's in English and what's in Vietnamese
+# set-aside blue jokers
+define_yaku yaku, "Anything Joker (縂)", ["tong_value", "Phán"], tong_value > 0
+define_yaku yaku, "Dot Joker (筒)", ["thung_value", "Phán"], thung_value > 0
+define_yaku yaku, "Bamboo Joker (索)", ["sooc_value", "Phán"], sooc_value > 0
+define_yaku yaku, "Character Joker (萬)", ["man_value", "Phán"], man_value > 0
+# set-aside red jokers
+define_yaku yaku, "Flower Joker (花)", ["hoa_value", "Phán"], hoa_value > 0
+define_yaku yaku, "Wind Joker (喜)", ["hi_value", "Phán"], hi_value > 0
+define_yaku yaku, "Dragon Joker (元)", ["nguyen_value", "Phán"], nguyen_value > 0
+define_yaku yaku, "Number Joker (合)", ["hop_value", "Phán"], hop_value > 0
+
+# joker set usage (add viet_more_jokers mod for more combos)
+define_yaku yaku, "Blue Joker Set", [1, "Mủn"], match(["hand", "calls", "flowers", "jokers", "winning_tile"], ~m"nojoker, 0j:1, 6j:1, 7j:1, 8j:1")
+define_yaku yaku, "Blue Joker Set", [1, "Mủn"], match(["flowers", "jokers"], ~m"nojoker, 0j:1, 6j:1, 7j:1, 8j:1")
+define_yaku yaku, "Red Joker Set", [1, "Mủn"], match(["hand", "calls", "flowers", "jokers", "winning_tile"], ~m"nojoker, 2j:1, 4j:1, 5j:1, 9j:1")
+define_yaku yaku, "Red Joker Set", [1, "Mủn"], match(["flowers", "jokers"], ~m"nojoker, 2j:1, 4j:1, 5j:1, 9j:1")
+
+# win on discarded joker
+define_yaku yaku, "Win on Discarded Joker", [1, "Mủn"], won_by_discard and match(["last_discard"], "any_joker")
+
+# can't use too many jokers in calls
+apply set_append, "buttons.chii.call_conditions", not_call_contains([+@all_jokers], 2)
+apply set_append, "buttons.pon.call_conditions", not_call_contains([+@all_jokers], 2)
+apply set_append, "buttons.daiminkan.call_conditions", not_call_contains([+@all_jokers], 1)
+apply set_append, "buttons.kakan.call_conditions", not_call_contains([+@all_jokers], 1)
+apply set_append, "buttons.ankan.call_conditions", not_call_contains([+@all_jokers], 1)
+
+# for a simultaneous call, no jokers wins over weak jokers, weak jokers win over strong jokers
+apply set_append, "buttons.pon.call_priority_list", not_call_choice_contains([+@all_jokers], 1)
+apply set_append, "buttons.pon.call_priority_list", call_choice_contains([+@all_jokers_1], 1)
+apply set_append, "buttons.pon.call_priority_list", call_choice_contains([+@all_jokers_2], 1)
+apply set_append, "buttons.pon.call_priority_list", call_choice_contains([+@all_jokers_3], 1)
+apply set_append, "buttons.daiminkan.call_priority_list", not_call_choice_contains([+@all_jokers], 1)
+apply set_append, "buttons.daiminkan.call_priority_list", call_choice_contains([+@all_jokers_1], 1)
+apply set_append, "buttons.daiminkan.call_priority_list", call_choice_contains([+@all_jokers_2], 1)
+apply set_append, "buttons.daiminkan.call_priority_list", call_choice_contains([+@all_jokers_3], 1)
+
+# bouncing jokers
+on after_initialization do
+  add_rule("Rules", "Bouncing Jokers", "If you have called Phỗng with a joker, and later you draw another copy of the same tile, you may 'bounce' the joker by substituting the joker for that drawn tile. The joker goes into your joker/flower pool as if replaced normally (scores points). You cannot bounce jokers when there are no more tiles remaining in the wall.")
+end
+
+define_button joker_swap,
+  display_name: "Bounce joker",
+  show_when:
+    our_turn and not_just_discarded
+    and not_status("can_rob_bounce")
+    and match(["hand_draw_nonjoker_any", "self_joker_meld_tiles"], ~m"nojoker, pair:1")
+    and not_no_tiles_remaining
+  do
+    big_text("Bounce")
+    mark([["call", 1, ["call_has_joker", "match_call_to_marked_hand"]], ["hand", 1, ["self", "not_joker", "match_hand_to_marked_call"]]])
+    set_status("can_rob_bounce")
+    swap_out_joker(@all_jokers, "call")
+    unset_status("can_rob_bounce")
+    draw(1, "opposite_end")
+  end

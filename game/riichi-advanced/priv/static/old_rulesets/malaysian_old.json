@@ -1,0 +1,672 @@
+{
+  "default_mods": ["malaysian_five_point_minimum", "malaysian_replaceable_fei_joker", "show_waits"],
+  "available_mods": [
+    {"id": "malaysian_five_point_minimum", "name": "Five Fan Minimum", "desc": "Only allow wins worth 5+ fan."},
+    {"id": "malaysian_replaceable_fei_joker", "name": "Replaceable Fly Joker", "desc": "Allow swapping out fei jokers from your own pungs using the same tile."},
+    {"id": "show_waits", "name": "Show Waits", "desc": "Add some UI that shows waits."},
+    {"id": "open_hands", "name": "Open Hands", "desc": "Everyone plays with tiles shown."}
+  ],
+  "yaku": [
+    {
+      "display_name": "Face",
+      "value": ["faces", "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[ "nojoker", [["1y"], 1] ]]]}]
+    },
+    {
+      "display_name": "All Faces",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[ "nojoker", [["1y"], 4] ]]]}]
+    },
+    {
+      "display_name": "Animal",
+      "value": ["animals", "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[ "nojoker", [["1a","2a","3a","4a"], 1] ]]]}]
+    },
+    {
+      "display_name": "All Animals",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1a","2a","3a","4a"], 4] ]]]}]
+    },
+    {
+      "display_name": "All Flowers",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1f","2f","3f","4f"], 4] ]]]}]
+    },
+    {
+      "display_name": "All Seasons",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1g","2g","3g","4g"], 4] ]]]}]
+    },
+    {
+      "display_name": "Seat Flower",
+      "value": [1, "Fan"],
+      "when": [{"name": "seat_is", "opts": ["east"]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["1f"], 1]] ]]}]
+    },
+    {
+      "display_name": "Seat Flower",
+      "value": [1, "Fan"],
+      "when": [{"name": "seat_is", "opts": ["south"]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["2f"], 1]] ]]}]
+    },
+    {
+      "display_name": "Seat Flower",
+      "value": [1, "Fan"],
+      "when": [{"name": "seat_is", "opts": ["west"]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["3f"], 1]] ]]}]
+    },
+    {
+      "display_name": "Four Flower",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[[["4f"], 1]]]]}]
+    },
+    {
+      "display_name": "Seat Season",
+      "value": [1, "Fan"],
+      "when": [{"name": "seat_is", "opts": ["east"]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["1g"], 1] ]]]}]
+    },
+    {
+      "display_name": "Seat Season",
+      "value": [1, "Fan"],
+      "when": [{"name": "seat_is", "opts": ["south"]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["2g"], 1] ]]]}]
+    },
+    {
+      "display_name": "Seat Season",
+      "value": [1, "Fan"],
+      "when": [{"name": "seat_is", "opts": ["west"]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["3g"], 1] ]]]}]
+    },
+    {
+      "display_name": "Four Season",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["flowers"], [[[["4g"], 1]]]]}]
+    },
+    {
+      "display_name": "Fly",
+      "value": ["declared_fei", "Fan"],
+      "when": [{"name": "counter_at_least", "opts": ["declared_fei", 1]}]
+    },
+    {
+      "display_name": "East Wind",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["ton"], 1]]]]}]
+    },
+    {
+      "display_name": "North Wind",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["pei"], 1]]]]}]
+    },
+    {
+      "display_name": "Seat Wind",
+      "value": [1, "Fan"],
+      "when": [[
+        [{"name": "seat_is", "opts": ["east"]}, {"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["ton"], 1]]]]}],
+        [{"name": "seat_is", "opts": ["south"]}, {"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["nan"], 1]]]]}],
+        [{"name": "seat_is", "opts": ["west"]}, {"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["shaa"], 1]]]]}]
+      ]]
+    },
+    {
+      "display_name": "White Dragon",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["haku"], 1]]]]}]
+    },
+    {
+      "display_name": "Green Dragon",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["hatsu"], 1]]]]}]
+    },
+    {
+      "display_name": "Red Dragon",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["chun"], 1]]]]}]
+    },
+    {
+      "display_name": "Small Three Dragons",
+      "value": [3, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], ["little_three_dragons"]]}]
+    },
+    {
+      "display_name": "Half Flush",
+      "value": [1, "Fan"],
+      "when": [{"name": "winning_hand_consists_of", "opts": ["1p","2p","3p","4p","5p","6p","7p","8p","9p","1z","2z","3z","4z","8z","6z","7z"]}]
+    },
+    {
+      "display_name": "Full Flush",
+      "value": [3, "Fan"],
+      "when": [{"name": "winning_hand_consists_of", "opts": ["1p","2p","3p","4p","5p","6p","7p","8p","9p"]}]
+    },
+    {
+      "display_name": "All Sequences with Dot Eye",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [
+        ["exhaustive", [[["1p","1p"],["2p","2p"],["3p","3p"],["4p","4p"],["5p","5p"],["6p","6p"],["7p","7p"],["8p","8p"],["9p","9p"]], 1], [["shuntsu"], 4]]
+      ]]}]
+    },
+    {
+      "display_name": "All Triplets",
+      "value": [2, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["koutsu"], 4], [["pair"], 1]]]]}]
+    },
+    {
+      "display_name": "After a Flower",
+      "value": [1, "Fan"],
+      "when": [{"name": "status", "opts": ["flower"]}]
+    },
+    {
+      "display_name": "After a Gong",
+      "value": [1, "Fan"],
+      "when": [{"name": "status", "opts": ["kan"]}]
+    },
+    {
+      "display_name": "Seven Pairs",
+      "value": [1, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "winning_tile"], [[[["quad"], -1], [["pair"], 7]]]]}]
+    },
+    {
+      "display_name": "Robbing a Gong",
+      "value": [1, "Fan"],
+      "when": ["won_by_call"]
+    },
+    {
+      "display_name": "Nine Gates",
+      "value": [10, "Fan"],
+      "when": ["won_by_draw", {"name": "match", "opts": [["hand", "winning_tile"], [[[["chuurenpoutou"], 1]]]]}]
+    },
+    {
+      "display_name": "Small Four Winds",
+      "value": [10, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], ["little_four_winds"]]}]
+    },
+    {
+      "display_name": "Big Four Winds",
+      "value": [10, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], ["big_four_winds"]]}]
+    },
+    {
+      "display_name": "No Flowers",
+      "value": [10, "Fan"],
+      "when": [{"name": "not_match", "opts": [["flowers"], [[ "unique", "nojoker", [["1f","2f","3f","4f","1g","2g","3g","4g","1a","2a","3a","4a","1y"], 1] ]]]}]
+    },
+    {
+      "display_name": "Four Gongs",
+      "value": [10, "Fan"],
+      "when": [{"name": "match", "opts": [["calls"], [[[["daiminkan", "ankan", "kakan"], 4]]]]}]
+    },
+    {
+      "display_name": "Big Three Dragons",
+      "value": [10, "Fan"],
+      "when": [{"name": "match", "opts": [["hand", "calls", "winning_tile"], ["big_three_dragons"]]}]
+    },
+    {
+      "display_name": "After Multiple Gongs",
+      "value": [10, "Fan"],
+      "when": [{"name": "status", "opts": ["double_kan"]}]
+    },
+    {
+      "display_name": "Four Concealed Triplets",
+      "value": [10, "Fan"],
+      "when": ["won_by_draw", {"name": "match", "opts": [["hand", "calls", "winning_tile"], [[[["pon", "daiminkan", "kakan"], -1], [["koutsu"], 4], [["pair"], 1]]]]}]
+    },
+    {
+      "display_name": "Four Fly",
+      "value": [10, "Fan"],
+        // TODO: check whether this should count the number of declared fei, or the number of fei in hand.
+      "when": [{"name": "counter_at_least", "opts": ["fei", 4]}]
+    },
+    {
+      "display_name": "Blessing of Heaven",
+      "value": [10, "Fan"],
+      "when": [{"name": "status", "opts": ["first_turn"]}, "won_by_draw"]
+    },
+    {
+      "display_name": "Blessing of Earth",
+      "value": [10, "Fan"],
+      "when": [{"name": "everyone_status", "opts": ["first_turn"]}, "won_by_discard"]
+    },
+    {
+      "display_name": "Final Tile",
+      "value": [10, "Fan"],
+      "when": ["no_tiles_remaining"]
+    },
+    {
+      "display_name": "All Honours",
+      "value": [10, "Fan"],
+      "when": [{"name": "winning_hand_consists_of", "opts": ["1z","2z","3z","4z","8z","6z","7z"]}]
+    },
+    {
+      "display_name": "All Sixteen Flowers",
+      "value": [10, "Fan"],
+      "when": [
+        {"name": "match", "opts": [["calls"], [[ "unique", "nojoker", [["1f","2f","3f","4f","1g","2g","3g","4g","1a","2a","3a","4a"], 12] ]]]},
+        {"name": "match", "opts": [["calls"], [[ "nojoker", [["1y"], 4] ]]]}
+      ]
+    }
+  ],
+  "yaku_precedence": {
+    "All Sixteen Flowers": ["Face", "Four Faces", "Animal", "All Animals", "Seat Flower", "Seat Season", "All Flowers", "All Seasons"],
+    "After Multiple Gongs": ["After a Gong"],
+    "Full Flush": ["Half Flush"],
+    "Big Four Winds": ["Small Four Winds", "East Wind", "North Wind", "Seat Wind"],
+    "Small Four Winds": ["East Wind", "North Wind", "Seat Wind"],
+    "Big Three Dragons": ["Small Three Dragons", "White Dragon", "Green Dragon", "Red Dragon"],
+    "Small Three Dragons": ["White Dragon", "Green Dragon", "Red Dragon"],
+    "Four Concealed Triplets": ["All Triplets"],
+    "All Honors": ["All Triplets", "Half Flush"],
+    "All Sequences with Dot Eye": ["Seven Pairs"]
+  },
+  "score_calculation": {
+    "scoring_method": "multiplier",
+    "score_multiplier": 20,
+    "max_score": 200,
+    "discarder_multiplier": 2,
+    "non_discarder_multiplier": 1,
+    "self_draw_multiplier": 2,
+    "yaku_lists": ["yaku"],
+    "point_name": "Fan",
+    "win_by_discard_label": "Discard",
+    "win_by_draw_label": "Draw",
+    "win_by_discard_name": "Wu",
+    "win_by_discard_name_2": "Double Wu",
+    "win_by_discard_name_3": "Triple Wu",
+    "win_by_draw_name": "Wu",
+    "exhaustive_draw_name": "Draw"
+  },
+  "after_initialization": {
+    "actions": [
+      ["add_rule", "Tiles", "Tiles", "Malaysian uses the following 84 tiles:", -100],
+      ["add_rule", "Tiles", "Tiles", "- Four each of the 1 to 9 of Dots %{pinzu}", {"pinzu": ["1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four each of the four Winds (East, South, West, North) %{winds}", {"winds": ["1z", "2z", "3z", "4z"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four each of the three Dragons (White, Green, Red) %{dragons}", {"dragons": ["8z", "6z", "7z"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four Face tiles %{faces}", {"faces": ["1y", "1y", "1y", "1y"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four Animal tiles %{animals}", {"animals": ["1a", "2a", "3a", "4a"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four Flower tiles, numbered from 1 to 4 %{flowers}", {"flowers": ["1f", "2f", "3f", "4f"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four Season tiles, numbered from 1 to 4 %{seasons}", {"seasons": ["1g", "2g", "3g", "4g"]}],
+      ["add_rule", "Tiles", "Tiles", "- Four Fei Jokers %{feis}", {"feis": ["2y", "2y", "2y", "2y"]}],
+      ["add_rule", "Tiles", "Flowers", "The Face, Animal, Flower, and Season tiles are all considered flower tiles."],
+      ["add_rule", "Tiles", "Flowers", "When a player draws any of these tiles, they expose it to the table, set it aside, and draw a replacement tile from the back end of the wall."],
+      ["add_rule", "Tiles", "Fei Joker", "The Fei Joker can stand for any tile."],
+      ["add_rule", "Tiles", "Fei Joker", "You can use two Fei Jokers in a called Pong, and one Fei joker in a called Chow. Fei jokers cannot be used in a Gong."],
+      ["add_rule", "Tiles", "Fei Joker", "Fei Jokers may also be declared as flowers."],
+        // TODO: add rules here
+      ["add_rule", "Rules", "Win Condition", "You may win with one of the following:", -102],
+      ["add_rule", "Rules", "Win Condition", "- Four sets (sequences or triplets) and a pair."],
+      ["add_rule", "Rules", "Win Condition", "- (Seven Pairs) Seven distinct pairs."],
+      ["add_rule", "Rules", "Win Condition", "- (Four Fly) Your starting hand contains four Fei Jokers"],
+      ["add_rule", "Rules", "Chow", "When the player to your left discards a tile you can use to complete a 3 tile sequence, you may call Chow to take that tile instead of drawing."],
+      ["add_rule", "Rules", "Pong", "When any player discards a tile you can use to complete a triplet, you may call Pong to take that tile. Then it becomes your turn to discard."],
+      ["add_rule", "Rules", "Gong", "You may declare Gong to set aside four tiles in three situations:"],
+      ["add_rule", "Rules", "Gong", "- (open) If you have three of a kind, you can claim the fourth if someone discarded it."],
+      ["add_rule", "Rules", "Gong", "- (added) If you previously called Pong, you can add the fourth tile to it but only if you draw the tile yourself."],
+      ["add_rule", "Rules", "Gong", "- (concealed) If you have four of a kind, you can declare them as a Concealed Gong."],
+      ["add_rule", "Rules", "Gong", "- In each case, you must then draw a replacement tile from the back of the wall."],
+        // 1 Fan (Flowers)
+      ["add_rule", "1 Fan (Flowers)", "Face", "You get 1 Fan per Face tile."],
+      ["add_rule", "1 Fan (Flowers)", "All Faces", "You get 1 additional Fan if you have all four Face tiles."],
+      ["add_rule", "1 Fan (Flowers)", "Animal", "You get 1 Fan per Animal tile."],
+      ["add_rule", "1 Fan (Flowers)", "All Animals", "You get 1 additional Fan if you have all four Animal tiles."],
+      ["add_rule", "1 Fan (Flowers)", "Seat Flower", "You get 1 Fan for having a flower whose number matches your seat (1=east, 2=south, 3=west)"],
+      ["add_rule", "1 Fan (Flowers)", "Four Flower", "You get 1 Fan for having the flower whose number is 4."],
+      ["add_rule", "1 Fan (Flowers)", "All Flowers", "You get 1 additional Fan if you have all four Flower tiles."],
+      ["add_rule", "1 Fan (Flowers)", "Seat Season", "You get 1 Fan for having a season whose number matches your seat (1=east, 2=south, 3=west)"],
+      ["add_rule", "1 Fan (Flowers)", "Four Season", "You get 1 Fan for having the season whose number is 4."],
+      ["add_rule", "1 Fan (Flowers)", "All Seasons", "You get 1 additional Fan if you have all four Season tiles."],
+      ["add_rule", "1 Fan (Flowers)", "Fly", "You get 1 Fan for each Fei Joker you've declared as a flower."],
+        // 1 Fan (Others)
+      ["add_rule", "1 Fan", "Value Triplets", "You get 1 Fan for each of the following triplets in your hand:"],
+      ["add_rule", "1 Fan", "Value Triplets", "- A triplet of dragon tiles %{dragons}", {"dragons": ["7z", "7z", "7z"]}],
+      ["add_rule", "1 Fan", "Value Triplets", "- A triplet of East Winds %{east_wind_triplet}", {"east_wind_triplet": ["1z", "1z", "1z"]}],
+      ["add_rule", "1 Fan", "Value Triplets", "- A triplet of North Winds %{north_wind_triplet}", {"north_wind_triplet": ["4z", "4z", "4z"]}],
+      ["add_rule", "1 Fan", "Value Triplets", "- A triplet of winds matching your seat %{seat_wind_triplet}"],
+      ["add_rule", "1 Fan", "Value Triplets", "Note that if you are in East seat, East Winds are counted twice."],
+      ["add_rule", "1 Fan", "Half Flush", "You get 1 Fan if your hand comprises only tiles of one suit, plus honours. (This is always awarded.)"],
+      ["add_rule", "1 Fan", "All Sequences With Dot Eye", "You get 1 Fan if your hand comprises four sequences and a pair of dots."],
+      ["add_rule", "1 Fan", "After a Flower", "You get 1 Fan for winning off the replacement draw from declaring a flower."],
+      ["add_rule", "1 Fan", "After a Gong", "You get 1 Fan for winning off the replacement draw from declaring a Gong."],
+      ["add_rule", "1 Fan", "Seven Pairs", "You get 1 Fan if your hand comprises seven different pairs."],
+      ["add_rule", "1 Fan", "Robbing a Gong", "You get 1 Fan for Robbing a Gong."],
+        // 2-3 Fan
+      ["add_rule", "2-3 Fan", "Small Three Dragons", "You get 3 Fan for having two triplets of dragons and a pair of the third."],
+      ["add_rule", "2-3 Fan", "Full Flush", "You get 3 Fan if your hand comprises only tiles of one suit, without honours."],
+      ["add_rule", "2-3 Fan", "All Triplets", "You get 2 Fan if your hand comprises four triplets and a pair."],
+        // 10 Fan
+      ["add_rule", "10 Fan", "Nine Gates", "You have no calls; your winning hand is the pattern 1112345678999 in one suit, plus one additional tile; and you won by self-draw."],
+      ["add_rule", "10 Fan", "Small Four Winds", "Your hand contains triplets or gongs of three winds, plus a pair of the fourth wind."],
+      ["add_rule", "10 Fan", "Big Four Winds", "Your hand contains triplets or kans of all four winds."],
+      ["add_rule", "10 Fan", "No Flowers", "You have no flowers."],
+      ["add_rule", "10 Fan", "Four Gongs", "You hand contains four Gongs."],
+      ["add_rule", "10 Fan", "Big Three Dragons", "Your hand contains triplets or gongs of all three dragons."],
+      ["add_rule", "10 Fan", "After Multiple Gongs", "You won off the replacement draw after multiple consecutive Gongs."],
+      ["add_rule", "10 Fan", "Four Concealed Triplets", "Your hand has four closed triplets in hand, and you won by self-draw."],
+      ["add_rule", "10 Fan", "Four Fly", "You declared four Fei Jokers as flowers."],
+      ["add_rule", "10 Fan", "Blessing of Heaven", "You won with your initial hand as dealer."],
+      ["add_rule", "10 Fan", "Blessing of Earth", "You won with your first draw as non-dealer."],
+      ["add_rule", "10 Fan", "Final Tile", "You won by drawing the last tile in the wall."],
+      ["add_rule", "10 Fan", "All Honours", "Your hand consists of only honour tiles."],
+      ["add_rule", "10 Fan", "All Sixteen Flowers", "You have sixteen flowers (all four flowers, all four seasons, all four animals, and all four faces)."]
+    ]
+  },
+  "before_turn_change": {
+    "actions": [
+      ["unset_status", "kan", "double_kan", "flower"],
+      ["when", [{"name": "status_missing", "opts": ["match_start"]}], [["unset_status", "first_turn"]]]
+    ]
+  },
+  "after_turn_change": {
+    "actions": [
+      ["when", ["no_tiles_remaining"], [["pause", 1000], ["ryuukyoku"]]],
+      ["when", [{"name": "status_missing", "opts": ["match_start"]}, "not_no_tiles_remaining"], [["draw"]]],
+      ["when", [{"name": "everyone_status", "opts": ["no_flowers"]}], [["unset_status_all", "no_flowers", "match_start"], ["change_turn", "east"]]]
+    ]
+  },
+  "before_call": {
+    "actions": [
+      ["unset_status", "kan", "double_kan", "flower"],
+      ["when", [{"name": "status_missing", "opts": ["match_start"]}], [["unset_status", "first_turn"]]]
+    ]
+  },
+  "after_call": {
+    "actions": [
+      ["when", [{"name": "match", "opts": [["last_call"], [[[["haku", "hatsu", "chun"], 1]]]]}, {"name": "match", "opts": [["calls"], [[[["haku"], 1], [["hatsu"], 1], [["chun"], 1]]]]}], [["as", "callee", [["make_responsible_for", "prev_seat", "all"]]]]],
+      ["when", [{"name": "match", "opts": [["last_call"], [[[["ton", "nan", "shaa", "pei"], 1]]]]}, {"name": "match", "opts": [["calls"], [[[["ton"], 1], [["nan"], 1], [["shaa"], 1], [["pei"], 1]]]]}], [["as", "callee", [["make_responsible_for", "prev_seat", "all"]]]]]
+    ]
+  },
+  "after_start": {
+    "actions": [
+      ["set_status_all", "first_turn", "match_start"],
+      ["set_tile_alias_all", ["2y"], ["any"]]
+    ]
+  },
+  "before_win": {
+    "actions": [
+      ["set_counter", "faces", "count_matches", ["flowers"], [["nojoker", [["1y"], 1] ]]],
+      ["set_counter", "animals", "count_matches", ["flowers"], [[ "nojoker", [["1a","2a","3a","4a"], 1] ]]],
+      ["when_anyone", [{"name": "counter_equals", "opts": ["fei", 0]}], [
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["set_counter", "fei", "count_matches", ["hand", "calls"], [["nojoker", [["2y"], 1] ]]]
+      ]],
+      ["when_anyone", [{"name": "counter_at_least", "opts": ["fei", 1]}], [
+        ["when", ["shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", ["toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", ["kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 2]}, "shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 2]}, "toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 2]}, "kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 3]}, "shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 3]}, "toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 3]}, "kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 4]}, "shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 4]}, "toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 4]}, "kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_equals", "opts": ["fei", 1]}], [["push_message", "is paid 50 from all players for having 1 fei tile"]]],
+        ["when", [{"name": "counter_equals", "opts": ["fei", 2]}], [["push_message", "is paid 100 from all players for having 2 fei tiles"]]],
+        ["when", [{"name": "counter_equals", "opts": ["fei", 3]}], [["push_message", "is paid 150 from all players for having 3 fei tiles"]]],
+        ["when", [{"name": "counter_equals", "opts": ["fei", 4]}], [["push_message", "is paid 200 from all players for having 4 fei tiles"]]]
+      ]]
+    ]
+  },
+  "before_exhaustive_draw": {
+    "actions": [
+      ["when_anyone", [{"name": "counter_equals", "opts": ["fei", 0]}], [
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["add_attr_first_tile", "2y", ["revealed"]],
+        ["set_counter", "fei", "count_matches", ["hand", "calls"], [["nojoker", [["2y"], 1] ]]]
+      ]],
+      ["when_anyone", [{"name": "counter_at_least", "opts": ["fei", 1]}], [
+        ["push_message", "is paid 50 from all players for each of their fei tiles"],
+        ["when", ["shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", ["toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", ["kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 2]}, "shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 2]}, "toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 2]}, "kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 3]}, "shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 3]}, "toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 3]}, "kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 4]}, "shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 4]}, "toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"]]],
+        ["when", [{"name": "counter_at_least", "opts": ["fei", 4]}, "kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"]]]
+      ]]
+    ]
+  },
+  "buttons": {
+    "start_flower": {
+      "display_name": "Reveal flower",
+      "show_when": [{"name": "status", "opts": ["match_start"]}, "our_turn", {"name": "match", "opts": [["hand", "draw"], [[ "nojoker", [["1f", "2f", "3f", "4f", "1g", "2g", "3g", "4g", "1a", "2a", "3a", "4a", "1y"], 1] ]]]}],
+      "actions": [
+        ["big_text", "Flower"],
+        ["flower", "1f", "2f", "3f", "4f", "1g", "2g", "3g", "4g", "1a", "2a", "3a", "4a", "1y"],
+        ["when", [[
+          [{"name": "match", "opts": [["call_choice"], [[ "nojoker", [["1f","2f","3f","4f"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1f","2f","3f","4f"], 4] ]]]}],
+          [{"name": "match", "opts": [["call_choice"], [[ "nojoker", [["1g","2g","3g","4g"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1g","2g","3g","4g"], 4] ]]]}],
+          [{"name": "match", "opts": [["call_choice"], [[ "nojoker", [["1a","2a","3a","4a"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1a","2a","3a","4a"], 4] ]]]}],
+          [{"name": "match", "opts": [["call_choice"], [[ "nojoker", [["1y"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "nojoker", [["1y"], 4] ]]]}]
+        ]], [
+          ["push_message", "is paid 100 from all players for completing a set of flowers before the first turn"],
+          ["when", ["shimocha_exists"], [["add_score", 100], ["subtract_score", 100, "shimocha"], ["as", "shimocha", [["big_text", "  -100  "]]]]],
+          ["when", ["toimen_exists"], [["add_score", 100], ["subtract_score", 100, "toimen"], ["as", "toimen", [["big_text", "  -100  "]]]]],
+          ["when", ["kamicha_exists"], [["add_score", 100], ["subtract_score", 100, "kamicha"], ["as", "kamicha", [["big_text", "  -100  "]]]]]
+        ]],
+        ["draw", 1, "opposite_end"]
+      ],
+      "unskippable": true
+    },
+    "start_joker": {
+      "display_name": "Reveal fei",
+      "show_when": [{"name": "status", "opts": ["match_start"]}, "our_turn", {"name": "match", "opts": [["hand", "draw"], [[[["2y"], 1]]]]}],
+      "actions": [["big_text", "Flower"], ["flower", "2y"], ["draw"]],
+      "unskippable": true
+    },
+    "start_no_flower": {
+      "display_name": "No flowers",
+      "show_when": [{"name": "status", "opts": ["match_start"]}, "our_turn", {"name": "not_match", "opts": [["hand", "draw"], [[ "nojoker", [["1f", "2f", "3f", "4f", "1g", "2g", "3g", "4g", "1a", "2a", "3a", "4a", "1y"], 1] ]]]}],
+      "actions": [["big_text", "No flowers"], ["set_status", "no_flowers"], ["advance_turn"], ["recalculate_buttons"]],
+      "unskippable": true
+    },
+    "chii": {
+      "display_name": "Chow",
+      "call": [[-2, -1], [-1, 1], [1, 2]],
+      "call_conditions": [{"name": "not_call_contains", "opts": [["2y"], 2]}],
+      "show_when": [
+        {"name": "status_missing",
+        "opts": ["match_start"]},
+        "not_our_turn",
+        "not_no_tiles_remaining",
+          // note: if you're in Initial East, there is no kamicha. in this case, you chow from toimen.
+        [["kamicha_exists", "kamicha_discarded"], ["not_kamicha_exists", "toimen_discarded"]],
+        "call_available"
+      ],
+      "actions": [["big_text", "Chow"], ["call"], ["change_turn", "self"]]
+    },
+    "pon": {
+      "display_name": "Pong",
+      "call": [[0, 0]],
+      "call_conditions": [
+        {"name": "call_contains", "opts": [["1p","2p","3p","4p","5p","6p","7p","8p","9p","1z","2z","3z","4z","8z","6z","7z"], 1]}
+      ],
+      "show_when": [{"name": "status_missing", "opts": ["match_start"]}, "not_our_turn", "not_no_tiles_remaining", "someone_else_just_discarded", "call_available"],
+      "actions": [["big_text", "Pong"], ["call"], ["change_turn", "self"]],
+      "precedence_over": ["chii"],
+      "call_priority_list": [
+        [{"name": "not_call_contains", "opts": [["2y"], 2]}],
+        [{"name": "not_call_contains", "opts": [["2y"], 1]}]
+      ]
+    },
+    "daiminkan": {
+      "display_name": "Gong",
+      "call": [[0, 0, 0]],
+      "call_conditions": [{"name": "not_call_contains", "opts": [["2y"], 1]}],
+      "show_when": [{"name": "status_missing", "opts": ["match_start"]}, "not_our_turn", "not_no_tiles_remaining", "someone_else_just_discarded", "call_available"],
+      "actions": [
+        ["big_text", "Gong"], ["call"], ["change_turn", "self"],
+        ["push_message", "is paid 100 from the discarder for calling gong"],
+        ["add_score", 100], ["subtract_score", 100, "last_discarder"], ["as", "last_discarder", [["big_text", "  -100  "]]],
+        ["when", [{"name": "status", "opts": ["kan"]}], [["set_status", "double_kan"]]],
+        ["set_status", "kan"],
+        ["draw", 1, "opposite_end"]
+      ],
+      "precedence_over": ["chii", "pon"]
+    },
+    "ankan": {
+      "display_name": "Concealed Gong",
+      "call": [[0, 0, 0]],
+      "call_conditions": [{"name": "not_call_contains", "opts": [["2y"], 1]}],
+      "show_when": [{"name": "status_missing", "opts": ["match_start"]}, "our_turn", "not_no_tiles_remaining", "has_draw", "self_call_available", {"name": "status_missing", "opts": ["just_reached"]}],
+      "actions": [
+        ["big_text", "Gong"], ["self_call"],
+        ["push_message", "is paid 100 from all players for making a concealed gong"],
+        ["when", ["shimocha_exists"], [["add_score", 100], ["subtract_score", 100, "shimocha"], ["as", "shimocha", [["big_text", "  -100  "]]]]],
+        ["when", ["toimen_exists"], [["add_score", 100], ["subtract_score", 100, "toimen"], ["as", "toimen", [["big_text", "  -100  "]]]]],
+        ["when", ["kamicha_exists"], [["add_score", 100], ["subtract_score", 100, "kamicha"], ["as", "kamicha", [["big_text", "  -100  "]]]]],
+        ["when", [{"name": "status", "opts": ["kan"]}], [["set_status", "double_kan"]]],
+        ["set_status", "kan"],
+        ["draw", 1, "opposite_end"]
+      ]
+    },
+    "kakan": {
+      "display_name": "Gong",
+      "call": [[0, 0, 0]],
+      "call_conditions": [{"name": "not_call_contains", "opts": [["2y"], 1]}],
+      "upgrades": "pon",
+      "show_when": [{"name": "status_missing", "opts": ["match_start"]}, "our_turn", "not_no_tiles_remaining", "has_draw", "can_upgrade_call", {"name": "status_missing", "opts": ["just_reached"]}],
+      "actions": [
+        ["big_text", "Gong"], ["upgrade_call"],
+        ["push_message", "is paid 50 from all players for upgrading a pong into a gong"],
+        ["when", ["shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"], ["as", "shimocha", [["big_text", "  -50  "]]]]],
+        ["when", ["toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"], ["as", "toimen", [["big_text", "  -50  "]]]]],
+        ["when", ["kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"], ["as", "kamicha", [["big_text", "  -50  "]]]]],
+        ["when", [{"name": "status", "opts": ["kan"]}], [["set_status", "double_kan"]]],
+        ["set_status", "kan"],
+        ["draw", 1, "opposite_end"]
+      ]
+    },
+    "ron": {
+      "display_name": "Wu",
+      "show_when": [
+        "not_our_turn",
+        {"name": "match", "opts": [["hand", "calls", "draw"], ["tenpai"]]},
+        "someone_else_just_discarded",
+        {"name": "match", "opts": [["hand", "calls", "last_discard"], ["win"]]}
+      ],
+      "actions": [["big_text", "Wu"], ["pause", 1000], ["reveal_hand"], 
+        // WARNING!: this double-counts the number of fei jokers used by the winner, since this same counter is used in before_win.
+        ["add_counter", "fei", "count_matches", ["hand", "calls", "last_discard"], [["nojoker", [["2y"], 1] ]]], ["win_by_discard"]],
+      "precedence_over": ["chii", "pon", "kan", "riichi", "daiminkan", "ankan", "kakan"]
+    },
+    "chankan": {
+      "display_name": "Wu",
+      "show_when": [
+        "not_our_turn",
+        {"name": "match", "opts": [["hand", "calls", "draw"], ["tenpai"]]},
+        {"name": "last_call_is", "opts": ["kakan"]},
+        {"name": "match", "opts": [["hand", "calls", "last_called_tile"], ["win"]]}
+      ],
+      "actions": [["big_text", "Wu"], ["pause", 1000], ["reveal_hand"],
+        // WARNING!: this double-counts the number of fei jokers used by the winner, since this same counter is used in before_win.
+        ["add_counter", "fei", "count_matches", ["hand", "calls", "last_called_tile"], [["nojoker", [["2y"], 1] ]]], ["win_by_call"]],
+      "precedence_over": ["chii", "pon", "kan", "riichi", "daiminkan", "ankan", "kakan"]
+    },
+    "tsumo": {
+      "display_name": "Wu",
+      "show_when": [
+        "our_turn",
+        {"name": "status_missing", "opts": ["match_start"]},
+        {"name": "match", "opts": [["hand", "calls", "draw"], ["tenpai"]]},
+        {"name": "match", "opts": [["hand", "calls", "draw"], ["win"]]}
+      ],
+      "actions": [["big_text", "Wu"], ["pause", 1000], ["reveal_hand"],
+        // WARNING!: this double-counts the number of fei jokers used by the winner, since this same counter is used in before_win.
+        ["add_counter", "fei", "count_matches", ["hand", "calls", "draw"], [["nojoker", [["2y"], 1] ]]], ["win_by_draw"]],
+      "precedence_over": ["chii", "pon", "kan", "riichi", "daiminkan", "ankan", "kakan"]
+    },
+    "four_fei": {
+      "display_name": "Four Fly Win",
+      "show_when": [
+        "our_turn",
+        {"name": "status", "opts": ["match_start"]},
+        {"name": "match", "opts": [["hand", "calls", "draw"], [["nojoker", [["2y"], 4] ]]]}
+      ],
+      "actions": [["big_text", "Four Fly"], ["pause", 1000], ["reveal_hand"],
+        // WARNING!: this double-counts the number of fei jokers used by the winner, since this same counter is used in before_win.
+        ["add_counter", "fei", 4],
+      ["win_by_draw"]]
+    },
+    "flower": {
+      "display_name": "Flower",
+      "show_when": ["our_turn", {"name": "status_missing", "opts": ["match_start"]}, "not_just_discarded", {"name": "match", "opts": [["hand", "draw"], [[ "nojoker", [["1f", "2f", "3f", "4f", "1g", "2g", "3g", "4g", "1a", "2a", "3a", "4a", "1y"], 1] ]]]}],
+      "actions": [
+        ["big_text", "Flower"],
+        ["flower", "1f", "2f", "3f", "4f", "1g", "2g", "3g", "4g", "1a", "2a", "3a", "4a", "1y"],
+        ["when", [[
+          [{"name": "match", "opts": [["call_choice"], [[ [["1f","2f","3f","4f"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1f","2f","3f","4f"], 4] ]]]}],
+          [{"name": "match", "opts": [["call_choice"], [[ [["1g","2g","3g","4g"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1g","2g","3g","4g"], 4] ]]]}],
+          [{"name": "match", "opts": [["call_choice"], [[ [["1a","2a","3a","4a"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ "unique", "nojoker", [["1a","2a","3a","4a"], 4] ]]]}],
+          [{"name": "match", "opts": [["call_choice"], [[ [["1y"], 1] ]]]}, {"name": "match", "opts": [["flowers"], [[ [["1y"], 4] ]]]}]
+        ]], [
+          ["push_message", "is paid 50 from all players for completing a set of flowers"],
+          ["when", ["shimocha_exists"], [["add_score", 50], ["subtract_score", 50, "shimocha"], ["as", "shimocha", [["big_text", "  -50  "]]]]],
+          ["when", ["toimen_exists"], [["add_score", 50], ["subtract_score", 50, "toimen"], ["as", "toimen", [["big_text", "  -50  "]]]]],
+          ["when", ["kamicha_exists"], [["add_score", 50], ["subtract_score", 50, "kamicha"], ["as", "kamicha", [["big_text", "  -50  "]]]]]
+        ]],
+        ["set_status", "flower"],
+        ["ite", ["no_tiles_remaining"], [["advance_turn"]], [["draw", 1, "opposite_end"]]]
+      ]
+    },
+    "joker": {
+      "display_name": "Fly",
+      "show_when": ["our_turn", {"name": "status_missing", "opts": ["match_start"]}, "not_just_discarded", "has_draw", {"name": "match", "opts": [["hand", "draw"], [[[["2y"], 1]]]]}],
+      "actions": [["big_text", "Fly"], ["flower", "2y"], ["set_status", "flower"], ["add_counter", "declared_fei", 1], ["ite", ["no_tiles_remaining"], [["advance_turn"]], [["draw"]]]]
+    }
+  },
+  "auto_buttons": {
+    "1_auto_sort": {
+      "display_name": "A",
+      "desc": "Automatically sort your hand.",
+      "actions": [["sort_hand"]],
+      "enabled_at_start": true
+    },
+    "2_auto_ron": {
+      "display_name": "R",
+      "desc": "Automatically declare wins.",
+      "actions": [
+        ["when", [{"name": "buttons_include", "opts": ["ron"]}], [["press_button", "ron"]]],
+        ["when", [{"name": "buttons_include", "opts": ["tsumo"]}], [["press_button", "tsumo"]]]
+      ],
+      "enabled_at_start": false
+    },
+    "3_auto_flower": {
+      "display_name": "F",
+      "desc": "Automatically declare all flowers.",
+      "actions": [
+        ["when", [{"name": "buttons_include", "opts": ["start_flower"]}], [["press_button", "start_flower"], ["press_first_call_button", "start_flower"]]],
+        ["when", [{"name": "buttons_include", "opts": ["start_no_flower"]}], [["press_button", "start_no_flower"]]],
+        ["when", [{"name": "buttons_include", "opts": ["flower"]}], [["press_button", "flower"], ["press_first_call_button", "flower"]]]
+      ],
+      "enabled_at_start": true
+    },
+    "4_auto_no_call": {
+      "display_name": "C",
+      "desc": "Skip all calls except wins.",
+      "actions": [
+        ["when", [
+            "not_our_turn",
+            {"name": "buttons_include", "opts": ["skip"]},
+            {"name": "buttons_exclude", "opts": ["ron", "chankan"]}
+          ], [["press_button", "skip"]]]
+      ],
+      "enabled_at_start": false
+    },
+    "5_auto_discard": {
+      "display_name": "D",
+      "desc": "Automatically discard your drawn tile.",
+      "actions": [["when", ["our_turn", {"name": "buttons_exclude", "opts": ["tsumo", "ankan"]}, "has_draw"], [["discard_draw"]]]],
+      "enabled_at_start": false
+    }
+  },
+  "interruptible_actions": ["play_tile", "draw", "call", "self_call", "upgrade_call"],
+  "initial_score": 0,
+  "starting_tiles": 13,
+  "num_players": 3,
+  "four_rows_discards": true,
+  "max_rounds": 16
+}

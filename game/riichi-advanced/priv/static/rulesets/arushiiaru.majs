@@ -1,0 +1,70 @@
+define_base_ruleset riichi
+set display_name, "Arushiiaru"
+set tutorial_link, "https://riichi.wiki/Arushiiaru_mahjong"
+require_after "partial_furiten"
+require_after "arushiiaru_scoring"
+
+set initial_score, 2000
+
+# yaku differences are:
+# - no menzentsumo, riichi, ippatsu, iipeikou, chiitoitsu, sanshoku (both), sankantsu, honroutou, ryanpeikou, junchan, renhou, ryuuiisou, suukantsu
+# - pinfu cannot tsumo, but can be open
+# - honitsu, ittsuu, chanta are always 1 han
+# - toitoi, sanankou, shousangen are 1 han
+# - chinitsu is 3 han
+# - all remaining yakuman are mangan
+# - no minimum han
+
+apply subtract, "default_mods", [
+  # these are removed
+  "lib/yaku/menzentsumo",
+  %{name: "lib/yaku/riichi", config: %{bet: 1000, drawless: false, double_value: 2}},
+  "lib/yaku/ippatsu",
+  %{name: "lib/yaku/iipeikou", config: %{ii_value: 1, ryan_value: 3}},
+  %{name: "lib/yaku/chiitoitsu", config: %{kansai: false, name: "Chiitoitsu", value: 2} },
+  %{name: "lib/yaku/sanshoku_doujun", config: %{closed_bonus: 1, value: 1} },
+  %{name: "lib/yaku/sanshoku_doukou", config: %{value: 2}},
+  %{name: "lib/yaku/sankantsu", config: %{value: 2}},
+  %{name: "lib/yaku/ryuuiisou", config: %{list: "yakuman", han: "★"}},
+  %{name: "lib/yaku/suukantsu", config: %{list: "yakuman", han: "★", value: 1}},
+  # we'll replace these
+  %{name: "lib/yaku/honitsu", config: %{chin_value: 5, closed_bonus: 1, hon_value: 2} },
+  %{name: "lib/yaku/ittsuu", config: %{closed_bonus: 1}},
+  %{name: "lib/yaku/chanta", config: %{chanta_value: 1, closed_bonus: 1, junchan_value: 2} },
+  %{name: "lib/yaku/toitoi", config: %{value: 2}},
+  %{name: "lib/yaku/sanankou", config: %{san_value: 2, suu_han: "★", suu_list: "yakuman", suu_tanki_value: 2, suu_tanki_han: "★", suu_value: 1}},
+  %{name: "lib/yaku/shousangen", config: %{dai_han: "★", dai_list: "yakuman", dai_value: 1, shou_value: 2}},
+  %{name: "lib/yaku/shousuushii", config: %{dai_han: "★", dai_list: "yakuman", dai_value: 2, shou_han: "★", shou_list: "yakuman", shou_value: 1}},
+  %{name: "lib/yaku/kokushi", config: %{han: "★", juusan_han: "★", juusan_list: "yakuman", juusan_value: 2, list: "yakuman", value: 1}},
+  %{name: "lib/yaku/chuurenpoutou", config: %{han: "★", junsei_han: "★", junsei_list: "yakuman", junsei_value: 2, list: "yakuman", value: 1}},
+  # other mods
+  %{name: "lib/yaku/riichi_renhou", config: %{is: "Yakuman"}},
+  %{name: "honba", config: %{value: 100}},
+  %{name: "dora", config: %{start_indicators: 1}},
+  "ura", "kandora",
+  %{name: "aka", config: %{man: 1, pin: 1, sou: 1}},
+  %{name: "nagashi", config: %{counts_as: "draw", is: "Mangan"}},
+  %{name: "lib/tobi", config: %{below: 0}},
+  %{name: "uma", config: %{_1st: 10, _2nd: 5, _3rd: -5, _4th: -10}},
+  "lib/kuikae_nashi",
+  %{name: "lib/min_han", config: %{han: "Han", min: 1}},
+  %{name: "suufon_renda", config: %{name: "Suufon Renda"}},
+  "suucha_riichi",
+  "lib/suukaikan",
+  "tenpairenchan",
+  %{name: "kyuushu_kyuuhai", config: %{name: "Kyuushu Kyuuhai"}},
+  "lib/pao_standard", "kokushi_ankan_chankan",
+  "cancellable_riichi"
+]
+
+apply append, "default_mods", [
+  %{name: "lib/yaku/honitsu", config: %{hon_value: 1, chin_value: 3}},
+  %{name: "lib/yaku/ittsuu", config: %{value: 1}},
+  %{name: "lib/yaku/chanta", config: %{chanta_value: 1}},
+  %{name: "lib/yaku/toitoi", config: %{value: 1}},
+  %{name: "lib/yaku/sanankou", config: %{san_value: 1, suu_list: "yakuman", suu_value: 1, suu_han: "★"}},
+  %{name: "lib/yaku/shousangen", config: %{value: 1}},
+  %{name: "lib/yaku/shousuushii", config: %{shou_value: 1, shou_han: "★", dai_value: 1, dai_han: "★"}},
+  %{name: "lib/yaku/kokushi", config: %{value: 1, han: "★"}},
+  %{name: "lib/yaku/chuurenpoutou", config: %{value: 1, han: "★"}},
+]

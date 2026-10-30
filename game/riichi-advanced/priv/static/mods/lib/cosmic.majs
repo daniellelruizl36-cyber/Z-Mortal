@@ -1,0 +1,44 @@
+# add haneyakuman, etc
+def calculate_base_score, prepend: true do
+  cond do
+    total > 0 -> noop
+    points >= 104 ->
+      total = 64000 :: "Octuple Yakuman base"
+      modify_winner("score_name", "Octuple Yakuman")
+    points >= 91 ->
+      total = 56000 :: "Septuple Yakuman base"
+      modify_winner("score_name", "Septuple Yakuman")
+    points >= 78 ->
+      total = 48000 :: "Sextuple Yakuman base"
+      modify_winner("score_name", "Sextuple Yakuman")
+    points >= 65 ->
+      total = 40000 :: "Quintuple Yakuman base"
+      modify_winner("score_name", "Quintuple Yakuman")
+    points >= 52 ->
+      total = 32000 :: "Quadruple Yakuman base"
+      modify_winner("score_name", "Quadruple Yakuman")
+    points >= 39 ->
+      total = 24000 :: "Triple Yakuman base"
+      modify_winner("score_name", "Triple Yakuman")
+    points >= 26 ->
+      total = 16000 :: "Double Yakuman base"
+      modify_winner("score_name", "Double Yakuman")
+    points >= 18 ->
+      total = 12000 :: "Haneyakuman base"
+      modify_winner("score_name", "Haneyakuman")
+  end
+end
+
+# rinshan can use fuun
+replace_yaku yaku, "Rinshan", [1, "Han"], status("kan") or status("fuun")
+
+# ryanpeikou gives less
+replace_yaku yaku, "Ryanpeikou", [1, "Han"], match(["hand", "calls", "winning_tile"], ~m"exhaustive, iipeikou:2, pair:1")
+define_yaku meta_yaku, "Ryanpeikou", [2, "Han"], has_existing_yaku("Ryanpeikou") and has_no_call_named("ton", "chii", "chon", "chon_honors", "daiminfuun", "pon", "daiminkan", "kapon", "kakakan", "kafuun", "kakan")
+
+# chiitoitsu is worth 1 more when closed
+define_yaku meta_yaku, "Chiitoitsu", [1, "Han"], has_existing_yaku("Chiitoitsu") and has_no_call_named("ton")
+
+define_match tenpai, "standard_tenpai", "chiitoitsu_tenpai", "kokushi_tenpai"
+define_match tenpai_14, "standard_tenpai", "chiitoitsu_tenpai_14", "kokushi_tenpai"
+define_match win, "standard_win", "chiitoitsu_win", "kokushi_win"

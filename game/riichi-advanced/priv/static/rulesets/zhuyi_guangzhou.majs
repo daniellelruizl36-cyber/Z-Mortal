@@ -1,0 +1,50 @@
+define_base_ruleset riichi
+set display_name, "Zhuyi Guangzhou"
+set tutorial_link, "https://github.com/EpicOrange/riichi_advanced/blob/main/documentation/riichi.md"
+require_after "riichi_fix_rules_tabs"
+
+# remove: nagashi mangan, abortive draws (4 winds / 4 riichi / 4 kans / 9 terminals), default kandora timing, default uma,
+# tobi (busting ends the game), double wind 4 fu (double wind pair is worth 2 fu)
+apply subtract, "default_mods", [
+  %{name: "nagashi", config: %{counts_as: "draw", is: "Mangan"}},
+  %{name: "suufon_renda", config: %{name: "Suufon Renda"}},
+  "suucha_riichi",
+  "lib/suukaikan",
+  %{name: "kyuushu_kyuuhai", config: %{name: "Kyuushu Kyuuhai"}},
+  %{name: "kandora", config: %{immediate: false}},
+  %{name: "uma", config: %{_1st: 10, _2nd: 5, _3rd: -5, _4th: -10}},
+  "shiny_dora",
+  "lib/tobi",
+  "double_wind_4_fu",
+]
+
+# add: kiriage mangan, sanbaiman cap (no kazoe yakuman), single yakuman each (no double yakuman),
+# head bump (no multiple ron), suukantsu pao, oka (30000 return), riichi sticks to first place,
+# and the full guangzhou shuugi package
+apply set_append, "default_mods", [
+  %{name: "kandora", config: %{immediate: true}},
+  %{name: "uma", config: %{_1st: 15, _2nd: 5, _3rd: -5, _4th: -15}},
+  "kiriage_mangan",
+  "no_kazoe_yakuman",
+  "no_double_yakuman",
+  "lib/head_bump",
+  "lib/pao_suukantsu",
+  "first_gets_riichi_sticks",
+  %{name: "lib/shuugi", config: %{worth: 3000, starting_shuugi: 10, pao_pays_all: true}},
+  %{name: "shuugi/aka", config: %{chips: 1, closed_only: false}},
+  %{name: "shuugi/ippatsu", config: %{chips: 1}},
+  %{name: "shuugi/ura", config: %{chips: 1}},
+  %{name: "shuugi/yakuman", config: %{ron_chips: 10, tsumo_chips: 5, per_yakuman: false, allow_kazoe: true}},
+  %{name: "zhuyi_gz/rinshan_haitei", config: %{chips: 1}},
+  "zhuyi_gz/all_star",
+  %{name: "zhuyi_gz/pao_shuugi", config: %{tsumo_unit: 5, ron_unit: 10}},
+]
+
+define_mod "zhuyi_gz/rinshan_haitei", order: 2, name: "Rinshan & Haitei Shuugi", deps: ["lib/shuugi"], desc: "Winning off a replacement tile (rinshan) or on the last tile (haitei/houtei) is worth 1 shuugi."
+define_mod "zhuyi_gz/all_star", order: 2, name: "All Star Shuugi", deps: ["lib/shuugi", "aka"], desc: "Having all three aka dora in your winning hand (including called tiles) is worth 5 shuugi, replacing the individual aka shuugi."
+define_mod "zhuyi_gz/pao_shuugi", order: 2, name: "Guangzhou Pao Shuugi", deps: ["lib/shuugi"], desc: "Pao shuugi settlement: on tsumo the pao player pays 10 shuugi per pao'd yakuman unit plus the normal share of unpao'd units; on ron the discarder pays 10 per unpao'd unit plus 5 per pao'd unit, and each pao player pays 5 per unit they are responsible for."
+
+on after_initialization do
+  add_rule("Rules", "Guangzhou Shuugi", "(Guangzhou) Aka / ura / ippatsu / rinshan / haitei are each worth 1 shuugi (aka only in a closed hand). Yakuman is worth 10 shuugi on ron and 5 per player on tsumo, doubling per yakuman. All Star (all three aka, calls included) is worth 5 shuugi instead of the individual aka shuugi. Each shuugi is worth 3000 points at the end.")
+  add_rule("Rules", "Match Play", "No tobi: a player going below zero does not end the game (M.League style). A double wind pair (round + seat wind) is worth 2 fu, not 4 fu.")
+end

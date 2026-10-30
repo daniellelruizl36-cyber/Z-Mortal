@@ -1,0 +1,45 @@
+require "pao_base"
+
+on after_initialization do
+  if rule_exists("Rules", "Sekinin Barai (Pao)") do
+    update_rule("Rules", "Sekinin Barai (Pao)", "(Rinshan Pao) Dealing a discard called for kan by a player, who then immediately wins with rinshan, also counts, except you pay for the full hand (not just rinshan).")
+  else
+    add_rule("Rules", "Sekinin Barai (Pao)", "If someone kans your discard and tsumos off the replacement tile (rinshan), you pay the full amount.")
+  end
+end
+
+on after_call do
+  if last_call_is("daiminkan") do
+    as callee do
+      set_status("rinshan_pao_eligible")
+      if status("pao") do
+        set_status("double_pao")
+      else
+        set_status("pao")
+      end
+    end
+  end
+end
+
+on before_turn_change do
+  as everyone do
+    if status("rinshan_pao_eligible") do
+      if status("double_pao") do
+        unset_status("double_pao")
+      else
+        unset_status("pao")
+      end
+    end
+  end
+end
+
+on before_win do
+  as others do
+    if status("rinshan_pao_eligible") do
+      as everyone do clear_responsibilities end
+      make_responsible_for("last_seat", "all", as: "last_seat")
+    end
+  end
+end
+
+apply append, "constants.pao_yaku", ["all"]

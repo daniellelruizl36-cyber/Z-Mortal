@@ -1,0 +1,473 @@
+     warning: this clause of defp compile_identifier/3 is never used (or it will always fail/warn when invoked)
+     │
+ 195 │   defp compile_identifier(id, line, column) do
+     │        ~
+     │
+     └─ lib/riichi_advanced/majs/compiler.ex:195:8: RiichiAdvanced.Compiler.compile_identifier/3
+
+      warning: the following clause is redundant:
+
+          [] ->
+
+      previous clauses have already matched on the following types:
+
+          empty_list() or non_empty_list(term(), term())
+
+      type warning found at:
+      │
+ 1252 │             [] -> {:error, "Compiler.compile: at line #{line}:#{column}, `#{cmd}` command expects an argument, got #{inspect(args)}"} 
+      │                ~
+      │
+      └─ lib/riichi_advanced/majs/compiler.ex:1252:16: RiichiAdvanced.Compiler.compile_jq_toplevel/5
+
+      warning: this clause in cond will always match:
+
+          all_choices_superceded
+
+      since it has type:
+
+          dynamic(not false and not nil)
+
+      where "all_choices_superceded" was given the type:
+
+          # type: dynamic(not false and not nil)
+          # from: lib/riichi_advanced/game/game_state/actions.ex:2470:54
+          all_choices_superceded
+
+      type warning found at:
+      │
+ 2473 │                   all_choices_superceded -> IO.puts("Player #{dir} must skip due to having choices superceded by #{seat}, original choices were: #{inspect(player.buttons ++ Map.keys(player.button_choices))}")
+      │                                          ~
+      │
+      └─ lib/riichi_advanced/game/game_state/actions.ex:2473:42: RiichiAdvanced.GameState.Actions.evaluate_choices/2
+
+     warning: the following clause cannot match because the previous clauses already matched all possible values:
+
+         _ ->
+
+     it attempts to match on the result of:
+
+         get_relative_seat(curr_seat, seat)
+
+     which has the already matched type:
+
+         dynamic(:kamicha or :self or :shimocha or :toimen)
+
+     type warning found at:
+     │
+ 250 │       _ -> 4
+     │         ~
+     │
+     └─ lib/riichi_advanced/game/utils.ex:250:9: RiichiAdvanced.Utils.atamahane_order/2
+
+     warning: incompatible types given to serialize_tile/2:
+
+         serialize_tile(id, suit)
+
+     given types:
+
+         -dynamic(non_empty_list(term()))-, binary()
+
+     but expected one of:
+
+         atom(), binary()
+
+     where "id" was given the types:
+
+         # type: non_empty_list(term())
+         # from: lib/riichi_advanced/game/utils.ex:630:34
+         length(id) > 1
+
+         # type: dynamic(non_empty_list(term()))
+         # from: lib/riichi_advanced/game/utils.ex
+         {id, []}
+
+     where "suit" was given the types:
+
+         # type: binary()
+         # from: lib/riichi_advanced/game/utils.ex:630:45
+         serialize_tile(id, suit)
+
+         # type: dynamic()
+         # from: lib/riichi_advanced/game/utils.ex
+         {suit, tiles}
+
+     type warning found at:
+     │
+ 630 │         {id, []} when length(id) > 1 -> "(#{serialize_tile(id, suit)})"
+     │                                             ~
+     │
+     └─ lib/riichi_advanced/game/utils.ex:630:45: RiichiAdvanced.Utils._serialize_hand/1
+
+     warning: incompatible types given to serialize_tile/2:
+
+         serialize_tile(id, suit)
+
+     given types:
+
+         -dynamic(non_empty_list(term()))-, binary()
+
+     but expected one of:
+
+         atom(), binary()
+
+     where "id" was given the types:
+
+         # type: dynamic(non_empty_list(term()))
+         # from: lib/riichi_advanced/game/utils.ex:633:9
+         id
+
+         # type: non_empty_list(term())
+         # from: lib/riichi_advanced/game/utils.ex:633:28
+         length(id) > 1
+
+     where "suit" was given the types:
+
+         # type: binary()
+         # from: lib/riichi_advanced/game/utils.ex:633:39
+         serialize_tile(id, suit)
+
+         # type: dynamic()
+         # from: lib/riichi_advanced/game/utils.ex
+         {suit, tiles}
+
+     type warning found at:
+     │
+ 633 │         id when length(id) > 1 -> "(#{serialize_tile(id, suit)})"
+     │                                       ~
+     │
+     └─ lib/riichi_advanced/game/utils.ex:633:39: RiichiAdvanced.Utils._serialize_hand/1
+
+    warning: the following clause will never match:
+
+        {{:error, msg}, _} ->
+
+    because it attempts to match on the result of:
+
+        {validate_json(key), validate_json(val)}
+
+    which has type:
+
+        dynamic({{:ok, term()}, term()})
+
+    type warning found at:
+    │
+ 75 │           {{:error, msg}, _}       -> {:error, "invalid JSON key: " <> msg}
+    │           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/riichi_advanced/majs/validator.ex:75: RiichiAdvanced.Validator.validate_map/1
+
+    warning: the following conditional expression will always succeed:
+
+        is_binary(name)
+
+    because it evaluates to:
+
+        dynamic(true)
+
+    where "name" was given the types:
+
+        # type: binary()
+        # from: lib/riichi_advanced/majs/validator.ex:86:31
+        name
+
+        # type: binary()
+        # from: lib/riichi_advanced/majs/validator.ex:86:42
+        is_binary(name)
+
+    type warning found at:
+    │
+ 87 │     negated = is_binary(name) and String.starts_with?(name, "not_")
+    │     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/riichi_advanced/majs/validator.ex:87: RiichiAdvanced.Validator.validate_condition_name/1
+
+    warning: the following conditional expression will always succeed:
+
+        is_binary(name)
+
+    because it evaluates to:
+
+        dynamic(true)
+
+    where "name" was given the types:
+
+        # type: binary()
+        # from: lib/riichi_advanced/majs/validator.ex:95:28
+        name
+
+        # type: binary()
+        # from: lib/riichi_advanced/majs/validator.ex:95:39
+        is_binary(name)
+
+    type warning found at:
+    │
+ 96 │     negated = is_binary(name) and String.starts_with?(name, "uninterruptible_")
+    │     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/riichi_advanced/majs/validator.ex:96: RiichiAdvanced.Validator.validate_action_name/1
+
+     warning: unused require Bitwise
+     │
+ 106 │   require Bitwise
+     │   ~
+     │
+     └─ lib/ex_smt/expression.ex:106:3
+
+     warning: incompatible types given to ExSMT.Expression.new/3:
+
+         ExSMT.Expression.new(:div, expr, Bitwise.bsl(1, width))
+
+     given types:
+
+         :div, dynamic(), -integer()-
+
+     but expected one of:
+
+         term(), term(), empty_list() or non_empty_list(term(), term())
+
+     where "expr" was given the type:
+
+         # type: dynamic()
+         # from: lib/ex_smt/expression.ex:141:21
+         %ExSMT.Expression{op: :">>", args: [expr, width]}
+
+     where "width" was given the type:
+
+         # type: integer()
+         # from: lib/ex_smt/expression.ex:141:77
+         is_integer(width)
+
+     type warning found at:
+     │
+ 142 │     ExSMT.Serializable.serialize_int(ExSMT.Expression.new(:div, expr, Bitwise.bsl(1, width)))
+     │                                                       ~
+     │
+     └─ lib/ex_smt/expression.ex:142:55: ExSMT.Serializable.ExSMT.Expression.serialize_int/1
+
+     warning: incompatible types given to ExSMT.Expression.new/3:
+
+         ExSMT.Expression.new(:*, expr, Bitwise.bsl(1, width))
+
+     given types:
+
+         :*, dynamic(), -integer()-
+
+     but expected one of:
+
+         term(), term(), empty_list() or non_empty_list(term(), term())
+
+     where "expr" was given the type:
+
+         # type: dynamic()
+         # from: lib/ex_smt/expression.ex:143:21
+         %ExSMT.Expression{op: :"<<", args: [expr, width]}
+
+     where "width" was given the type:
+
+         # type: integer()
+         # from: lib/ex_smt/expression.ex:143:77
+         is_integer(width)
+
+     type warning found at:
+     │
+ 144 │     ExSMT.Serializable.serialize_int(ExSMT.Expression.new(:*, expr, Bitwise.bsl(1, width)))
+     │                                                       ~
+     │
+     └─ lib/ex_smt/expression.ex:144:55: ExSMT.Serializable.ExSMT.Expression.serialize_int/1
+
+     warning: variable "hands" is unused (if the variable is not meant to be used, prefix it with an underscore)
+     │
+ 168 │     hands = %{:east  => Utils.sort_tiles(Enum.slice(wall, 0..12)),
+     │     ~~~~~
+     │
+     └─ lib/riichi_advanced/game/game_state/debug.ex:168:5: RiichiAdvanced.GameState.Debug.set_starting_hand/1
+
+    warning: the variable "prefix_sz" is accessed inside size(...) of a bitstring but it was defined outside of the match. You must precede it with the pin operator
+    │
+ 76 │     <<bytes_as_int::integer-size(prefix_sz), bits_as_int::integer-size(suffix_sz)>> = b
+    │                                  ~
+    │
+    └─ lib/ex_smt/bit_vector.ex:76:34: ExSMT.BitVector.bitstring_decode_unsigned/1
+
+    warning: the variable "suffix_sz" is accessed inside size(...) of a bitstring but it was defined outside of the match. You must precede it with the pin operator
+    │
+ 76 │     <<bytes_as_int::integer-size(prefix_sz), bits_as_int::integer-size(suffix_sz)>> = b
+    │                                                                        ~
+    │
+    └─ lib/ex_smt/bit_vector.ex:76:72: ExSMT.BitVector.bitstring_decode_unsigned/1
+
+    warning: unused require Bitwise
+    │
+  2 │   require Bitwise
+    │   ~
+    │
+    └─ lib/ex_smt/bit_vector.ex:2:3
+
+    warning: unused require Logger
+    │
+ 22 │   require Logger
+    │   ~
+    │
+    └─ lib/riichi_advanced/game/game_state.ex:22:3
+
+      warning: comparison between distinct types found:
+
+          index == nil
+
+      given types:
+
+          integer() == nil
+
+      where "index" was given the type:
+
+          # type: integer()
+          # from: lib/riichi_advanced/game/game_state.ex:2004:21
+          Enum.at(hand, index)
+
+      While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+      type warning found at:
+      │
+ 2006 │           index == nil -> get_visible_waits(state, seat, nil)
+      │                 ~
+      │
+      └─ lib/riichi_advanced/game/game_state.ex:2006:17: RiichiAdvanced.GameState.handle_cast/2
+
+     warning: comparison between distinct types found:
+
+         assigns.viewer != :spectator
+
+     given types:
+
+         dynamic(not :spectator) != :spectator
+
+     where "assigns" was given the types:
+
+         # type: dynamic(%{..., marking: term(), viewer: not :spectator, your_hand?: term()})
+         # from: lib/riichi_advanced_web/views/hand_component.ex:32
+         assigns
+
+         # type: dynamic(%{..., your_hand?: term()})
+         # from: lib/riichi_advanced_web/views/hand_component.ex:34:14
+         assigns.your_hand?
+
+         # type: dynamic(%{..., marking: term(), your_hand?: term()})
+         # from: lib/riichi_advanced_web/views/hand_component.ex:104:25
+         Enum.empty?(assigns.marking)
+
+         # type: dynamic(%{..., marking: term(), viewer: not :spectator, your_hand?: term()})
+         # from: lib/riichi_advanced_web/views/hand_component.ex:104:54
+         assigns.viewer != :spectator
+
+         # type: dynamic(%{..., calls: term(), marking: term(), viewer: not :spectator, your_hand?: term()})
+         # from: lib/riichi_advanced_web/views/hand_component.ex:105:41
+         prepare_calls(assigns)
+
+         # type: dynamic(%{
+           ...,
+           calls: term(),
+           dead_hand_buttons: term(),
+           marking: term(),
+           viewer: not :spectator,
+           your_hand?: term()
+         })
+         # from: lib/riichi_advanced_web/views/hand_component.ex:106
+         assigns.dead_hand_buttons
+
+         # type: dynamic(%{
+           ...,
+           calls: term(),
+           dead_hand_buttons: boolean(),
+           marking: term(),
+           viewer: not :spectator,
+           your_hand?: term()
+         })
+         # from: lib/riichi_advanced_web/views/hand_component.ex:106
+         assigns.dead_hand_buttons
+
+         # type: dynamic(%{
+           ...,
+           calls: term(),
+           dead_hand_buttons: true,
+           marking: term(),
+           viewer: not :spectator,
+           your_hand?: term()
+         })
+         # from: lib/riichi_advanced_web/views/hand_component.ex:106
+         assigns.dead_hand_buttons
+
+         # type: dynamic(%{
+           ...,
+           calls: term(),
+           dead_hand_buttons: true,
+           marking: term(),
+           seat: term(),
+           viewer: not :spectator,
+           your_hand?: term()
+         })
+         # from: lib/riichi_advanced_web/views/hand_component.ex:106
+         assigns.seat != assigns.viewer
+
+     While Elixir can compare across all types, you are comparing across types which are always disjoint, and the result is either always true or always false
+
+     type warning found at:
+     │
+ 106 │             <div class="dead-hand-button inactive" :if={@dead_hand_buttons and i == 0 and @seat != @viewer and @viewer != :spectator}></div>
+     │             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     │
+     └─ lib/riichi_advanced_web/views/hand_component.ex:106: RiichiAdvancedWeb.HandComponent.render/1
+
+    warning: incompatible types given to Jason.Encode.atom/2:
+
+        Jason.Encode.atom(data, opts)
+
+    given types:
+
+        -dynamic(({...} and not {term(), term()}) or {term(), term()})-, dynamic({term(), term()})
+
+    but expected one of:
+
+        atom(), {term(), term()}
+
+    where "data" was given the types:
+
+        # type: dynamic({...})
+        # from: lib/riichi_advanced/game/game_state/log.ex:6:14
+        data
+
+        # type: {...}
+        # from: lib/riichi_advanced/game/game_state/log.ex:6:31
+        is_tuple(data)
+
+        # type: dynamic(({...} and not {term(), term()}) or {term(), term()})
+        # from: lib/riichi_advanced/game/game_state/log.ex:8:16
+        RiichiAdvanced.Utils.to_tile(data)
+
+    where "opts" was given the types:
+
+        # type: dynamic()
+        # from: lib/riichi_advanced/game/game_state/log.ex:6:20
+        opts
+
+        # type: dynamic({term(), term()})
+        # from: lib/riichi_advanced/game/game_state/log.ex:12:41
+        Jason.Encode.atom(data, opts)
+
+    type warning found at:
+    │
+ 12 │       _                 -> Jason.Encode.atom(data, opts)
+    │                                         ~
+    │
+    └─ lib/riichi_advanced/game/game_state/log.ex:12:41: Jason.Encoder.Tuple.encode/2
+
+    warning: the variable "cluster_sz" is accessed inside size(...) of a bitstring but it was defined outside of the match. You must precede it with the pin operator
+    │
+ 36 │     <<cluster::binary-size(cluster_sz), _::binary>> = long
+    │                            ~
+    │
+    └─ lib/ex_smt/rle.ex:36:28: ExSMT.RLE.encode_part/4
+
+Warning: rigged wall:
+- is missing these tiles: [:"6m", :"5z"]
+- is extra these tiles: [:"1z", :"8z"]

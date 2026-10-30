@@ -1,0 +1,11 @@
+apply append, "persistent_statuses", ["reset_honba"]
+on before_exhaustive_draw do
+  set_status_all("reset_honba")
+end
+on before_start do
+  if status("reset_honba") do
+    subtract_honba("honba")
+    subtract_honba(1)
+    unset_status_all("reset_honba")
+  end
+end

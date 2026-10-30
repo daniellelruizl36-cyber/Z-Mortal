@@ -34,7 +34,8 @@
 
 - `mortal/`：训练管线代码（监督预训练 + 在线 RL，含数据加载、对局、评测设施）
 - `libriichi/`、`exe-wrapper/`：Mortal 的 Rust 核心（麻将对局引擎/批量推理），源码附带
-- **不包含**：训练配置与超参数、实验记录
+- `game/`：**可玩的游戏客户端**源码（Riichi Advanced 修改版 + R4 接入桥 + 打包脚本），Windows 安装包见 Release [`game-v0.1`](https://github.com/daniellelruizl36-cyber/Z-Mortal/releases/tag/game-v0.1)
+- **不包含**：训练配置与超参数、实验记录（注：游戏安装包内置的 R4 checkpoint 为完整训练存档，含网络权重与训练超参）
 
 ## 协议与声明
 

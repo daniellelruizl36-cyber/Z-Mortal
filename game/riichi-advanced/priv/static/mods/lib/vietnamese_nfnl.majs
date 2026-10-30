@@ -1,0 +1,226 @@
+on after_initialization do
+  add_rule("Rules", "Win Condition", "- (Vietnamese NFNL) Starting with no flowers in your hand, you complete one of the above hands while discarding every honor, flower, or joker tile as soon as possible. (Your final hand cannot have honors, flowers, or jokers.)", -100)
+  add_rule("Rules", "Win Condition", "- (Vietnamese NFNL) Starting with no flowers in your hand, you discard three flowers or jokers, and proceed to discard until you have no honors, flowers or jokers, at which point you can win on the next discarded or drawn number tile.", -100)
+  add_rule("Rules", "Win Condition", "- (Vietnamese NFNL) Starting with no flowers in your hand, you discard a third flower without having discarded any joker tiles.", -100)
+  add_rule("Rules", "Win Condition", "- (Vietnamese NFNL) Starting with no flowers in your hand, you discard a third tile from the set %{blue_jokers} (blue jokers + number joker) without having discarded any flowers or %{red_jokers}.", %{blue_jokers: ~t"06782j", red_jokers: ~t"45j"}, -100)
+  add_rule("Rules", "No Flowers, No Leaves (NFNL)", """
+    (Vietnamese) NFNL describes four hands with the same preconditions:
+
+    1. You must immediately discard flowers and jokers as soon as you get them.
+    2. You cannot start with any flowers, including %{hoa}. That is, you declare No Flowers immediately.
+    3. The dealer may declare No Flowers if they start with exactly one flower tile, but they must discard it the following turn.
+
+    If these conditions are satisfied, you can win with any of the following NFNL hands (earliest one takes priority):
+
+    - True NFNL (2 Mủn): You complete a hand normally but without using any honors, flowers, or jokers. For True NFNL, if you discarded less than three jokers, the first two jokers you deal are scored as if you had declared them for points.
+    - Discarding Blue Jokers (1+ Mủn): You discard a third joker within the set %{blue_jokers} + %{hop}, but without discarding %{red_jokers} or any flower. (Number and honor discards do not invalidate this.) After that discard, you may choose to immediately declare a self-drawn win, even if you have honors, jokers, for flowers in hand. If you choose to forgo the win and go on to discard additional %{blue_jokers}%{hop}, each scores an additional Mủn and again gives you the choice to win.
+    - Discarding Flowers (1+ Mủn): Your discard a third flower (includes %{hoa}) without discarding any jokers %{all_jokers}. (Number and honor discards do not invalidate this.) Due to the initial flower declaration round, to score this you must draw no flowers initially but draw three flowers later on. After that third discard, you may choose to immediately declare a self-drawn win, even if you have honors, jokers, or flower tiles in hand. If you choose to forgo the win and go on to discard additional flower tiles, each scores an additional Mủn and again gives you the choice to win.
+    - Discarding Flowers/Jokers (1+ Mủn): If you discard at least three flowers or jokers, and subsequently discard all honors/jokers/flowers from your hand leaving only number tiles, you may call a win on the next discarded or drawn number tile. If you have discarded 5 or more joker/flower tiles at that point, you score an additional 1 Mủn per joker/flower tile, starting with the 5th.
+
+    Note that True NFNL is the only NFNL hand that can combine with other hand patterns to score additional phán or mủn. However, it does not score any No Jokers bonuses.
+    """, %{hoa: ~t"9j", red_jokers: "45j", blue_jokers: ~t"0678j", all_jokers: ~t"0245678j", hop: ~t"2j"}, -90)
+end
+
+define_match has_non_nfnl_tile, ~m"nojoker, (any_flower any_joker):1"
+define_match has_non_nfnl1_tile, ~m"nojoker, (any_flower any_joker 1z 2z 3z 4z 0z 6z 7z):1"
+
+# True NFNL: replace regular win buttons with a button that says "No Flowers, No Leaves"
+define_const true_nfnl,
+  status("nfnl_eligible")
+  and (flowers_jokers_discarded < 3 or not_our_turn or not_has_draw or match(["draw"], ["has_non_nfnl_tile"]))
+  and not_match(["hand", "draw", "calls", "flowers", "jokers"], ["has_non_nfnl_tile"])
+define_const has_win_button,
+  (not_our_turn and someone_else_just_discarded and not_match(["last_discard"], ["any_flower", "any_joker"]) and match(["hand", "calls", "last_discard"], ["win"]))
+  or (not_our_turn and someone_else_just_called and not_match(["last_called_tile"], ["any_flower", "any_joker"]) and status("can_chankan", as: "caller") and match(["hand", "calls", "last_called_tile"], ["win"]))
+  or (our_turn and not_match(["draw"], ["any_flower", "any_joker"]) and match(["hand", "calls", "draw", "flowers"], ["win"]))
+define_button nfnl0,
+  display_name: "No Flowers, No Leaves",
+  show_when: status_missing("initial_flowers")
+    and +@true_nfnl
+    and +@has_win_button,
+  precedence_over: ["chii", "pon", "daiminkan", "ron", "chankan", "nfnl0", "nfnl1"]
+  do
+    if our_turn do big_text("Chỉ Mó") else big_text("Ù") end
+    pause(1000)
+    reveal_hand
+    cond do
+      someone_else_just_discarded -> win_by_discard("ron")
+      someone_else_just_called -> win_by_call("ron")
+      true -> win_by_draw("tsumo")
+    end
+  end
+# other players can still have seat-order priority over this
+apply append, "buttons.ron.precedence_over", ["nfnl0", "nfnl1"]
+apply append, "buttons.chankan.precedence_over", ["nfnl0", "nfnl1"]
+
+# Discarding Flowers/Jokers
+define_button nfnl1,
+  display_name: "No Flowers, No Leaves",
+  show_when: status_missing("initial_flowers")
+    and status("nfnl_eligible", "discarding_flowers_jokers_eligible")
+    and flowers_jokers_discarded >= 3
+    and not_match(["hand", "draw", "calls", "flowers", "jokers"], ["has_non_nfnl1_tile"])
+    and ((our_turn and has_draw and not_match(["draw"], ["has_non_nfnl1_tile"]))
+      or (not_our_turn and someone_else_just_discarded and not_match(["last_discard"], ["has_non_nfnl1_tile"]))
+      or (not_our_turn and someone_else_just_called and status("can_chankan", as: "caller") and not_match(["last_called_tile"], ["has_non_nfnl1_tile"]))),
+  precedence_over: ["chii", "pon", "daiminkan", "ron", "chankan", "nfnl0", "nfnl1"]
+  do
+    big_text("No Flowers, No Leaves")
+    pause(1000)
+    reveal_hand
+    win_by_discard("tsumo")
+  end
+
+# Discarding Flowers/Blue Jokers
+define_button nfnl2,
+  display_name: "No Flowers, No Leaves",
+  show_when: our_turn and just_discarded
+    and status_missing("initial_flowers")
+    and status("nfnl_eligible")
+    and ((status("discarding_flowers_eligible") and flowers_discarded >= 3)
+      or (status("discarding_blue_jokers_eligible") and blue_jokers_discarded >= 3)
+    and not_match(["hand", "calls", "flowers", "jokers"], ~m"(any_flower any_joker):1"))
+  do
+    big_text("No Flowers, No Leaves")
+    pause(1000)
+    reveal_hand
+    win_by_discard("tsumo")
+  end
+
+on after_start do
+  set_status_all("nfnl_eligible")
+end
+on after_call do
+  if match(["last_call"], ["any_joker"]) do
+    unset_status("nfnl_eligible")
+  end
+end
+define_play_effect not_flower_or_joker do
+  if match(["hand"], ~m"(any_flower any_joker):1") do
+    # on the first discard, dealer is permitted to discard a flower/joker from hand
+    unless seat_is("east") and status("first_turn") do
+      unset_status("nfnl_eligible")
+    end
+  end
+end
+
+# declaring any flowers/jokers disqualifies you
+# (prepend to avoid interrupts)
+apply prepend, "buttons.start_flower.actions" do unset_status("nfnl_eligible") end
+apply prepend, "buttons.start_joker.actions" do unset_status("nfnl_eligible") end
+apply prepend, "buttons.flower.actions" do unset_status("nfnl_eligible") end
+apply prepend, "buttons.joker.actions" do unset_status("nfnl_eligible") end
+# same with any standard win call
+apply prepend, "buttons.ron.actions" do unset_status("nfnl_eligible") end
+apply prepend, "buttons.chankan.actions" do unset_status("nfnl_eligible") end
+apply prepend, "buttons.tsumo.actions" do unset_status("nfnl_eligible") end
+
+# discarding flowers variations
+on after_start do
+  set_status_all("discarding_flowers_jokers_eligible")
+  set_status_all("discarding_flowers_eligible")
+  set_status_all("discarding_blue_jokers_eligible")
+end
+on before_turn_change do
+  if status_missing("nfnl_eligible") do
+    unset_status("discarding_flowers_jokers_eligible")
+    unset_status("discarding_flowers_eligible")
+    unset_status("discarding_blue_jokers_eligible")
+  end
+end
+define_play_effect joker do unset_status("discarding_flowers_eligible") end
+define_play_effect manzu do
+  unset_status("discarding_flowers_jokers_eligible")
+  if match(["hand", "draw"], ["has_non_nfnl_tile"]) do unset_status("nfnl_eligible") end
+end
+define_play_effect pinzu do
+  unset_status("discarding_flowers_jokers_eligible")
+  if match(["hand", "draw"], ["has_non_nfnl_tile"]) do unset_status("nfnl_eligible") end
+end
+define_play_effect souzu do
+  unset_status("discarding_flowers_jokers_eligible")
+  if match(["hand", "draw"], ["has_non_nfnl_tile"]) do unset_status("nfnl_eligible") end
+end
+# define_play_effect jihai do if match(["hand", "draw"], ~m"(any_flower any_joker):1") do unset_status("nfnl_eligible") end end
+define_play_effect "flower" do flowers_discarded += 1; flowers_jokers_discarded += 1 end
+
+def joker_discard do
+  if jokers_discarded < 2 do set_status("$status") end
+  jokers_discarded += 1
+  flowers_jokers_discarded += 1
+  if "$is_blue" == 1 do
+    blue_jokers_discarded += 1
+  else
+    unset_status("discarding_blue_jokers_eligible")
+  end
+end
+define_play_effect "0j" do joker_discard(status: "discarded_0j", is_blue: 1) end
+define_play_effect "6j" do joker_discard(status: "discarded_6j", is_blue: 1) end
+define_play_effect "7j" do joker_discard(status: "discarded_7j", is_blue: 1) end
+define_play_effect "8j" do joker_discard(status: "discarded_8j", is_blue: 1) end
+define_play_effect "9j" do joker_discard(status: "discarded_9j", is_blue: 0) end
+define_play_effect "2j" do joker_discard(status: "discarded_2j", is_blue: 1) end
+define_play_effect "4j" do joker_discard(status: "discarded_4j", is_blue: 0) end
+define_play_effect "5j" do joker_discard(status: "discarded_5j", is_blue: 0) end
+
+on before_win do
+  if status("discarding_flowers_jokers_eligible") and flowers_jokers_discarded >= 3 do
+    discarding_flowers_jokers_value = 1
+    if flowers_jokers_discarded >= 5 do
+      discarding_flowers_jokers_value = flowers_jokers_discarded - 3
+    end
+  end
+  if status("discarding_flowers_eligible") and flowers_discarded >= 3 do
+    discarding_flowers_value = flowers_discarded - 2
+  end
+  if status("discarding_blue_jokers_eligible") and blue_jokers_discarded >= 3 and red_jokers_discarded == 0 do
+    discarding_blue_jokers_value = blue_jokers_discarded - 2
+  end
+end
+
+apply append, "score_calculation.yaku_lists", "nfnl"
+define_yaku nfnl, "Discarding Flowers/Jokers", ["discarding_flowers_jokers_value", "Mủn"],
+  status("nfnl_eligible", "discarding_flowers_jokers_eligible")
+  and not just_discarded
+  and discarding_flowers_jokers_value > 0
+  and not_match(["hand", "calls", "winning_tile"], ["has_non_nfnl_tile"]),
+  ["yaku", "progressive", "meta_yaku"]
+define_yaku nfnl, "Discarding Flowers", ["discarding_flowers_value", "Mủn"],
+  status("nfnl_eligible", "discarding_flowers_eligible")
+  and our_turn and just_discarded
+  and discarding_flowers_value > 0
+  and not_match(["hand", "calls", "flowers", "jokers"], ~m"nojoker, (any_flower any_joker):1"),
+  ["yaku", "progressive", "meta_yaku"]
+define_yaku nfnl, "Discarding Blue Jokers", ["discarding_blue_jokers_value", "Mủn"],
+  status("nfnl_eligible", "discarding_blue_jokers_eligible")
+  and our_turn and just_discarded
+  and discarding_blue_jokers_value > 0
+  and not_match(["hand", "calls", "flowers", "jokers"], ~m"nojoker, (any_flower any_joker):1"),
+  ["yaku", "progressive", "meta_yaku"]
+define_yaku nfnl, "True No Flowers, No Leaves", [1, "Mủn"],
+  status("nfnl_eligible")
+  and match(["hand", "calls", "winning_tile"], ["win"])
+  and not_match(["hand", "calls", "winning_tile"], ["has_non_nfnl_tile"]),
+  ["Small No Jokers Bonus", "No Jokers Bonus"]
+
+if defined("more_jokers") do
+  replace_yaku nfnl, "True No Flowers, No Leaves", [2, "Mủn"]
+end
+
+on before_win do
+  if status("nfnl_eligible") and not_match(["hand", "draw", "calls", "flowers", "jokers"], ["has_non_nfnl_tile"]) and match(["hand", "calls", "winning_tile"], ["win"]) do
+    # winning true NFNL while having discarded only 1-2 jokers gives you their value
+    if jokers_discarded <= 2 do
+      calculate_joker_values
+      if status_missing("discarded_0j") do tong_value = 0 end
+      if status_missing("discarded_6j") do thung_value = 0 end
+      if status_missing("discarded_7j") do sooc_value = 0 end
+      if status_missing("discarded_8j") do man_value = 0 end
+      if status_missing("discarded_9j") do hoa_value = 0 end
+      if status_missing("discarded_5j") do hi_value = 0 end
+      if status_missing("discarded_4j") do nguyen_value = 0 end
+      if status_missing("discarded_2j") do hop_value = 0 end
+    end
+    make_responsible_for("others")
+  end
+end
